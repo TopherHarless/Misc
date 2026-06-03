@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gut Health Tracker</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; }
+.container { max-width: 480px; margin: 0 auto; padding: 16px 16px 48px; }
+
+.header { background: linear-gradient(135deg, #1b4332, #2d6a4f, #40916c); color: white; padding: 22px 20px 24px; border-radius: 18px; margin-bottom: 14px; text-align: center; box-shadow: 0 4px 18px rgba(45,106,79,0.28); }
+.header h1 { font-size: 1.15rem; font-weight: 700; margin-bottom: 18px; }
+.streaks { display: flex; justify-content: center; gap: 40px; }
+.streak-item { text-align: center; }
+.streak-number { font-size: 2.6rem; font-weight: 800; display: block; line-height: 1; }
+.streak-label { font-size: 0.7rem; opacity: 0.85; display: block; margin-top: 6px; line-height: 1.4; }
+
+.complete-banner { background: linear-gradient(135deg, #d8f3dc, #b7e4c7); color: #1b4332; border-radius: 14px; padding: 13px 16px; text-align: center; font-weight: 700; font-size: 0.9rem; display: none; margin-bottom: 14px; }
+.complete-banner.show { display: block; }
+
+.card { background: white; border-radius: 16px; padding: 18px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.card-title { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #718096; margin-bottom: 14px; }
+
+.meal-hdr { font-size: 0.75rem; font-weight: 800; color: #718096; padding: 12px 0 2px; letter-spacing: 0.03em; }
+.meal-hdr:first-child { padding-top: 0; }
+.dose-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f4f8; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.dose-item:last-child { border-bottom: none; }
+.dose-item.inactive { opacity: 0.38; cursor: default; pointer-events: none; }
+.dose-checkbox { width: 26px; height: 26px; border-radius: 8px; border: 2px solid #cbd5e0; margin-right: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: transparent; transition: all 0.18s; }
+.dose-item.checked .dose-checkbox { background: #40916c; border-color: #40916c; color: white; }
+.dose-info { flex: 1; }
+.dose-name { font-weight: 600; font-size: 0.92rem; }
+.dose-detail { font-size: 0.77rem; color: #718096; margin-top: 2px; }
+
+.gut-rating { display: flex; gap: 8px; }
+.gut-btn { flex: 1; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 4px; cursor: pointer; text-align: center; transition: all 0.15s; font-family: inherit; }
+.gut-btn .emoji { font-size: 1.4rem; display: block; }
+.gut-btn .label { font-size: 0.65rem; color: #718096; display: block; margin-top: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.gut-btn.selected { border-color: #40916c; background: #f0fff4; }
+.gut-btn.selected .label { color: #2d6a4f; }
+
+.divider { height: 1px; background: #f0f4f8; margin: 14px 0; }
+.progress-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; font-weight: 600; margin-bottom: 7px; }
+.progress-val { color: #718096; font-weight: 500; }
+.progress-bar-bg { height: 9px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #2d6a4f, #52b788); border-radius: 99px; transition: width 0.5s ease; }
+.progress-note { font-size: 0.71rem; color: #a0aec0; margin-top: 5px; }
+
+.history-wrap { overflow-x: auto; }
+.history-grid { display: grid; grid-template-columns: 62px repeat(4, 1fr); gap: 3px; align-items: center; min-width: 280px; }
+.h-col { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.04em; color: #a0aec0; text-align: center; font-weight: 800; padding-bottom: 4px; }
+.h-date { font-size: 0.71rem; color: #718096; text-align: right; padding-right: 6px; white-space: nowrap; }
+.h-date.today { color: #2d6a4f; font-weight: 700; }
+.h-dot { height: 24px; border-radius: 6px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+.h-dot.done { background: #d8f3dc; color: #2d6a4f; }
+.h-dot.miss { background: #fee2e2; color: #c53030; }
+.h-dot.na { background: #f7fafc; color: #cbd5e0; font-size: 9px; }
+.h-dot.now { border: 2px solid #52b788; background: #f0fff4; }
+
+.sched-item { padding: 12px 0; border-bottom: 1px solid #f0f4f8; }
+.sched-item:last-child { border-bottom: none; }
+.sched-item.past { opacity: 0.45; }
+.sched-item.current { background: #f0fff4; border-radius: 10px; padding: 12px; margin: 0 -4px; }
+.sched-item.big { border-left: 3px solid #40916c; padding-left: 10px; }
+.sched-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.sched-date { font-size: 0.75rem; font-weight: 800; color: #2d6a4f; white-space: nowrap; }
+.sched-lbl { font-size: 0.82rem; font-weight: 700; }
+.sched-meals { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; }
+.sched-meal { font-size: 0.72rem; color: #4a5568; }
+.sched-meal .ml { color: #a0aec0; font-weight: 600; }
+.sched-totals { font-size: 0.74rem; font-weight: 700; color: #2d6a4f; margin-top: 5px; }
+.sched-note { font-size: 0.7rem; color: #40916c; margin-top: 3px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>🌿 Gut Health Protocol</h1>
+  <div class="streaks">
+    <div class="streak-item">
+      <span class="streak-number" id="ps-streak">—</span>
+      <span class="streak-label">🥔 Potato Starch<br>day streak</span>
+    </div>
+    <div class="streak-item">
+      <span class="streak-number" id="psy-streak">—</span>
+      <span class="streak-label">🌱 Psyllium<br>day streak</span>
+    </div>
+  </div>
+</div>
+
+<div class="complete-banner" id="banner">🎉 All doses done today — streak secured!</div>
+
+<div class="card">
+  <div class="card-title">Today — <span id="today-lbl">—</span></div>
+  <div id="checklist"></div>
+</div>
+
+<div class="card" style="border: 1.5px dashed #cbd5e0;">
+  <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleYesterday()">
+    <div class="card-title" style="margin-bottom:0;">Fix Yesterday — <span id="yest-lbl">—</span></div>
+    <span id="yest-arrow" style="font-size:0.85rem;color:#a0aec0;">▼</span>
+  </div>
+  <div id="yest-checklist" style="display:none;margin-top:14px;"></div>
+</div>
+
+<div class="card">
+  <div class="card-title">How's the gut today?</div>
+  <div class="gut-rating">
+    <button class="gut-btn" id="gut-great" onclick="setGut('great')"><span class="emoji">😊</span><span class="label">Great</span></button>
+    <button class="gut-btn" id="gut-ok"    onclick="setGut('ok')"><span class="emoji">😐</span><span class="label">OK</span></button>
+    <button class="gut-btn" id="gut-rough" onclick="setGut('rough')"><span class="emoji">😣</span><span class="label">Rough</span></button>
+    <button class="gut-btn" id="gut-hold"  onclick="setGut('hold')"><span class="emoji">✋</span><span class="label">Hold dose</span></button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Protocol Progress</div>
+  <div class="progress-label"><span>🥔 Potato Starch</span><span class="progress-val" id="ps-lbl">—</span></div>
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="ps-bar"></div></div>
+  <div class="progress-note" id="ps-note"></div>
+  <div class="divider"></div>
+  <div class="progress-label"><span>🌿 Psyllium</span><span class="progress-val" id="psy-lbl">—</span></div>
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="psy-bar"></div></div>
+  <div class="progress-note" id="psy-note"></div>
+  <div class="divider"></div>
+  <div class="progress-label"><span>💧 Soluble Fiber</span><span class="progress-val" id="fib-lbl">—</span></div>
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="fib-bar"></div></div>
+  <div class="progress-note">Chia ~2g · Psyllium ~6g/tbsp · Target: 20g</div>
+</div>
+
+<div class="card">
+  <div class="card-title">Recent History</div>
+  <div class="history-wrap">
+    <div class="history-grid" id="hist">
+      <div></div>
+      <div class="h-col">AM Mix</div>
+      <div class="h-col">PS+</div>
+      <div class="h-col">Psy L</div>
+      <div class="h-col">Psy D/B</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Ramp-Up Schedule</div>
+  <div id="schedule"></div>
+</div>
+
+</div>
+<script>
+var KEY = 'gut-v4';
+var PS_START  = '2026-04-21';
+var PSY_START = '2026-04-23';
+
+var SCHED = [
+  { date:'2026-04-21', lbl:'Protocol Starts',                      ps:{tot:1.0,b:1.0,l:0,  d:0  }, psy:{tot:1.0,b:0,  l:1.0,d:0  } },
+  { date:'2026-05-04', lbl:'🥔 PS Lunch Dose Begins',              ps:{tot:1.5,b:1.0,l:0.5,d:0  }, psy:{tot:1.0,b:0,  l:1.0,d:0  } },
+  { date:'2026-05-06', lbl:'🌿 Psyllium Dinner Dose Begins',       ps:{tot:1.5,b:1.0,l:0.5,d:0  }, psy:{tot:1.5,b:0,  l:1.0,d:0.5} },
+  { date:'2026-05-11', lbl:'🥔 Potato Starch Increases',           ps:{tot:2.5,b:1.0,l:1.0,d:0.5}, psy:{tot:1.5,b:0,  l:1.0,d:0.5} },
+  { date:'2026-05-13', lbl:'🌿 Psyllium Dinner Increases',         ps:{tot:2.5,b:1.0,l:1.0,d:0.5}, psy:{tot:2.0,b:0,  l:1.0,d:1.0} },
+  { date:'2026-05-18', lbl:'🥔 Potato Starch Increases',           ps:{tot:3.0,b:1.5,l:1.0,d:0.5}, psy:{tot:2.0,b:0,  l:1.0,d:1.0} },
+  { date:'2026-05-20', lbl:'🌿 Psyllium Breakfast Dose Begins',    ps:{tot:3.0,b:1.5,l:1.0,d:0.5}, psy:{tot:2.5,b:0.5,l:1.0,d:1.0} },
+  { date:'2026-05-25', lbl:'🥔 Potato Starch Increases',           ps:{tot:3.5,b:1.5,l:1.5,d:0.5}, psy:{tot:2.5,b:0.5,l:1.0,d:1.0} },
+  { date:'2026-05-27', lbl:'🌿 Psyllium Full Maintenance ✅', big:true, ps:{tot:3.5,b:1.5,l:1.5,d:0.5}, psy:{tot:3.0,b:1.0,l:1.0,d:1.0}, note:'💪 ~18g soluble fiber daily' },
+  { date:'2026-06-01', lbl:'🥔 Potato Starch Increases',           ps:{tot:4.5,b:2.0,l:1.5,d:1.0}, psy:{tot:3.0,b:1.0,l:1.0,d:1.0} },
+  { date:'2026-06-08', lbl:'✅ Full Protocol Achieved',      big:true, ps:{tot:5.0,b:2.0,l:2.0,d:1.0}, psy:{tot:3.0,b:1.0,l:1.0,d:1.0}, note:'🥔 40g resistant starch · 🌿 18g psyllium · 🌱 2g chia = ~20g total fiber' }
+];
+
+function phase(d) {
+  var p = SCHED[0];
+  for (var i = 0; i < SCHED.length; i++) {
+    if (d >= SCHED[i].date) p = SCHED[i];
+    else break;
+  }
+  return p;
+}
+
+function todayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function addDays(ds, n) {
+  var d = new Date(ds + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+
+function dateRange(a, b) {
+  var out = [], d = new Date(a + 'T12:00:00'), e = new Date(b + 'T12:00:00');
+  while (d <= e) {
+    out.push(d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()));
+    d.setDate(d.getDate()+1);
+  }
+  return out;
+}
+
+function sfmt(ds) { return new Date(ds+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function lfmt(ds) { return new Date(ds+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+
+function blank() { return {morning:false,psLunch:false,psDinner:false,psyLunch:false,psyDinner:false,psyBreakfast:false,gut:null}; }
+
+function load() {
+  var s; try { s = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+  if (!s || !s.days) s = {days:{}};
+  var t = todayStr();
+  // Seed
+  dateRange(PS_START, t).forEach(function(dt) {
+    if (s.days[dt]) return;
+    var b = blank();
+    if (dt !== t) { b.morning = true; if (dt >= PSY_START) b.psyLunch = true; }
+    s.days[dt] = b;
+  });
+  // Corrections — confirmed days Apr 21 – May 3 (morning + psyLunch)
+  dateRange('2026-04-21','2026-05-03').forEach(function(dt) {
+    if (!s.days[dt]) s.days[dt] = blank();
+    s.days[dt].morning = true;
+    if (dt >= PSY_START) s.days[dt].psyLunch = true;
+  });
+  // May 4–10: morning + psLunch (started May 4) + psyLunch confirmed
+  dateRange('2026-05-04','2026-05-10').forEach(function(dt) {
+    if (!s.days[dt]) s.days[dt] = blank();
+    s.days[dt].morning  = true;
+    s.days[dt].psLunch  = true;
+    s.days[dt].psyLunch = true;
+  });
+  // May 7–10: dinner psyllium confirmed taken
+  dateRange('2026-05-07','2026-05-10').forEach(function(dt) {
+    if (!s.days[dt]) s.days[dt] = blank();
+    s.days[dt].psyDinner = true;
+  });
+  // May 6: dinner psyllium was forgotten — leave psyDinner = false (red X stands)
+  return s;
+}
+
+var S = load();
+function save() { localStorage.setItem(KEY, JSON.stringify(S)); }
+save();
+
+function toggle(f, dateStr) {
+  var dt = dateStr || todayStr();
+  if (!S.days[dt]) S.days[dt] = blank();
+  S.days[dt][f] = !S.days[dt][f];
+  save(); render();
+}
+
+var yesterdayOpen = false;
+function toggleYesterday() {
+  yesterdayOpen = !yesterdayOpen;
+  document.getElementById('yest-checklist').style.display = yesterdayOpen ? 'block' : 'none';
+  document.getElementById('yest-arrow').textContent = yesterdayOpen ? '▲' : '▼';
+}
+
+function setGut(r) {
+  var t = todayStr();
+  if (!S.days[t]) S.days[t] = blank();
+  S.days[t].gut = S.days[t].gut === r ? null : r;
+  save(); render();
+}
+
+function streak(f, start) {
+  var t = todayStr(), n = 0;
+  var dates = dateRange(start, t).reverse();
+  // If today's dose isn't checked yet, skip today and show confirmed streak
+  var i = 0;
+  if (dates.length > 0 && !(S.days[dates[0]] && S.days[dates[0]][f])) i = 1;
+  for (; i < dates.length; i++) {
+    var d = S.days[dates[i]];
+    if (d && d[f]) n++; else break;
+  }
+  return n;
+}
+
+function activeFields(ph) {
+  var f = ['morning','psyLunch'];
+  if (ph.ps.l > 0)  f.push('psLunch');
+  if (ph.ps.d > 0)  f.push('psDinner');
+  if (ph.psy.d > 0) f.push('psyDinner');
+  if (ph.psy.b > 0) f.push('psyBreakfast');
+  return f;
+}
+
+function render() {
+  var t = todayStr();
+  var td = S.days[t] || blank();
+  var ph = phase(t);
+
+  document.getElementById('today-lbl').textContent = lfmt(t);
+
+  var psS  = streak('morning',  PS_START);
+  var psyS = streak('psyLunch', PSY_START);
+  document.getElementById('ps-streak').textContent  = psS  + (psS  >= 7 ? '🔥':'');
+  document.getElementById('psy-streak').textContent = psyS + (psyS >= 5 ? '🔥':'');
+
+  renderChecklist(ph, td, t, 'checklist', t);
+  var yest = addDays(t, -1);
+  var yd   = S.days[yest] || blank();
+  var yph  = phase(yest);
+  document.getElementById('yest-lbl').textContent = lfmt(yest);
+  renderChecklist(yph, yd, yest, 'yest-checklist', yest);
+
+  ['great','ok','rough','hold'].forEach(function(r) {
+    document.getElementById('gut-'+r).classList.toggle('selected', td.gut === r);
+  });
+
+  document.getElementById('ps-bar').style.width  = (ph.ps.tot  / 5 * 100) + '%';
+  document.getElementById('psy-bar').style.width = (ph.psy.tot / 3 * 100) + '%';
+  document.getElementById('ps-lbl').textContent  = ph.ps.tot  + ' tbsp / 5 tbsp';
+  document.getElementById('psy-lbl').textContent = ph.psy.tot + ' tbsp / 3 tbsp';
+
+  var fib = 2 + ph.psy.tot * 6;
+  document.getElementById('fib-bar').style.width = Math.min(fib/20*100,100) + '%';
+  document.getElementById('fib-lbl').textContent = '~' + fib + 'g / 20g';
+
+  // Next milestones
+  var nps = null, npsy = null;
+  for (var i=0; i<SCHED.length; i++) {
+    var s = SCHED[i];
+    if (s.date > t) {
+      if (!nps  && s.ps.tot  > ph.ps.tot)  nps  = s;
+      if (!npsy && s.psy.tot > ph.psy.tot) npsy = s;
+    }
+  }
+  document.getElementById('ps-note').textContent  = nps  ? 'Next: '  + nps.ps.tot  + ' tbsp on ' + sfmt(nps.date)  : '🎉 Full target reached!';
+  document.getElementById('psy-note').textContent = npsy ? 'Next: '  + npsy.psy.tot + ' tbsp on ' + sfmt(npsy.date) : '🎉 Full maintenance dose!';
+
+  var af = activeFields(ph);
+  var allDone = af.every(function(f) { return !!td[f]; });
+  document.getElementById('banner').classList.toggle('show', allDone);
+
+  renderHistory(t);
+  renderSchedule(t);
+}
+
+function renderChecklist(ph, td, dateStr, elId, toggleDate) {
+  var el = document.getElementById(elId);
+  el.innerHTML = '';
+  var t = todayStr();
+  var soon5 = addDays(t, 5);
+  var isToday = (elId === 'checklist');
+
+  var meals = [
+    {
+      emoji: '☕️', name: 'Breakfast',
+      items: [
+        { f:'morning',      name:'🥛 Morning Mix',   detail:'Chobani Yogurt Smoothie + 1 tbsp 🥜 Chia + ' + ph.ps.b + ' tbsp 🥔 Potato Starch', on: true },
+        { f:'psyBreakfast', name:'🌿 Psyllium Husk', detail: ph.psy.b > 0 ? ph.psy.b + ' tbsp in water + Mio flavoring' : 'Begins ' + sfmt('2026-05-20'), on: ph.psy.b > 0, startDate:'2026-05-20' }
+      ]
+    },
+    {
+      emoji: '🥪', name: 'Lunch',
+      items: [
+        { f:'psLunch',  name:'🥔 Potato Starch', detail: ph.ps.l  > 0 ? ph.ps.l  + ' tbsp in psyllium mixture'    : 'Begins ' + sfmt('2026-05-04'), on: ph.ps.l  > 0, startDate:'2026-05-04' },
+        { f:'psyLunch', name:'🌿 Psyllium Husk',  detail: ph.psy.l + ' tbsp in water + Mio flavoring', on: true }
+      ]
+    },
+    {
+      emoji: '🍽️', name: 'Dinner',
+      items: [
+        { f:'psDinner',  name:'🥔 Potato Starch', detail: ph.ps.d  > 0 ? ph.ps.d  + ' tbsp in psyllium mixture'    : 'Begins ' + sfmt('2026-05-11'), on: ph.ps.d  > 0, startDate:'2026-05-11' },
+        { f:'psyDinner', name:'🌿 Psyllium Husk',  detail: ph.psy.d > 0 ? ph.psy.d + ' tbsp in water + Mio flavoring' : 'Begins ' + sfmt('2026-05-06'), on: ph.psy.d > 0, startDate:'2026-05-06' }
+      ]
+    }
+  ];
+
+  meals.forEach(function(meal) {
+    var visible = meal.items.filter(function(item) {
+      return item.on || (isToday && item.startDate && item.startDate <= soon5);
+    });
+    if (visible.length === 0) return;
+
+    var hdr = document.createElement('div');
+    hdr.className = 'meal-hdr';
+    hdr.textContent = meal.emoji + ' ' + meal.name;
+    el.appendChild(hdr);
+
+    visible.forEach(function(item) {
+      var div = document.createElement('div');
+      div.className = 'dose-item' + (!item.on ? ' inactive' : '') + (item.on && td[item.f] ? ' checked' : '');
+      div.innerHTML = '<div class="dose-checkbox">✓</div><div class="dose-info"><div class="dose-name">'+item.name+'</div><div class="dose-detail">'+item.detail+'</div></div>';
+      if (item.on) { (function(f, dt){ div.addEventListener('click', function(){ toggle(f, dt); }); })(item.f, toggleDate); }
+      el.appendChild(div);
+    });
+  });
+}
+
+function renderHistory(t) {
+  var grid = document.getElementById('hist');
+  while (grid.children.length > 5) grid.removeChild(grid.lastChild);
+  var dates = dateRange(PS_START, t).reverse().slice(0, 14);
+
+  dates.forEach(function(dt) {
+    var d  = S.days[dt] || blank();
+    var ph = phase(dt);
+    var isT = dt === t;
+
+    var dc = document.createElement('div');
+    dc.className = 'h-date' + (isT ? ' today' : '');
+    dc.textContent = isT ? 'Today' : sfmt(dt);
+    grid.appendChild(dc);
+
+    // Col 1: morning
+    addDot(grid, d.morning, true, isT);
+
+    // Col 2: PS+ (psLunch and/or psDinner when active)
+    var psLActive = dt >= '2026-05-04';
+    var psDActive = dt >= '2026-05-11';
+    var psAllDone = (!psLActive || d.psLunch) && (!psDActive || d.psDinner);
+    var psAnyActive = psLActive || psDActive;
+    addDot(grid, psAnyActive ? psAllDone : false, psAnyActive, isT);
+
+    // Col 3: Psy Lunch
+    addDot(grid, d.psyLunch, dt >= PSY_START, isT);
+
+    // Col 4: Psy D/B (dinner May6+, breakfast May20+)
+    var pyDActive = dt >= '2026-05-06';
+    var pyBActive = dt >= '2026-05-20';
+    var pyAllDone = (!pyDActive || d.psyDinner) && (!pyBActive || d.psyBreakfast);
+    var pyAnyActive = pyDActive || pyBActive;
+    addDot(grid, pyAnyActive ? pyAllDone : false, pyAnyActive, isT);
+  });
+}
+
+function addDot(grid, done, applicable, isToday) {
+  var dot = document.createElement('div');
+  dot.className = 'h-dot' + (isToday ? ' now' : '');
+  if (!applicable) { dot.classList.add('na'); dot.textContent = '—'; }
+  else if (done)   { if (!isToday) dot.classList.add('done'); dot.textContent = '✓'; }
+  else if (isToday){ dot.textContent = ''; }
+  else             { dot.classList.add('miss'); dot.textContent = '✗'; }
+  grid.appendChild(dot);
+}
+
+function renderSchedule(t) {
+  var el = document.getElementById('schedule');
+  el.innerHTML = '';
+  var curPhase = phase(t);
+
+  SCHED.forEach(function(s) {
+    var isPast    = s.date < curPhase.date;
+    var isCurrent = s.date === curPhase.date;
+    var div = document.createElement('div');
+    div.className = 'sched-item' + (isPast?' past':'') + (isCurrent?' current':'') + (s.big?' big':'');
+
+    var top = document.createElement('div');
+    top.className = 'sched-top';
+    top.innerHTML = '<span class="sched-date">📅 ' + sfmt(s.date) + (s.date <= t ? ' ✓' : '') + '</span><span class="sched-lbl">' + s.lbl + '</span>';
+    div.appendChild(top);
+
+    var meals = document.createElement('div');
+    meals.className = 'sched-meals';
+    var lines = [];
+    if (s.ps.b)  lines.push('<span class="ml">Breakfast:</span> ' + s.ps.b  + ' tbsp PS in Chobani');
+    if (s.ps.l)  lines.push('<span class="ml">Lunch:</span> '     + s.ps.l  + ' tbsp PS in Psy mix');
+    if (s.ps.d)  lines.push('<span class="ml">Dinner:</span> '    + s.ps.d  + ' tbsp PS in Psy mix');
+    if (s.psy.l) lines.push('<span class="ml">Lunch:</span> '     + s.psy.l + ' tbsp Psyllium');
+    if (s.psy.d) lines.push('<span class="ml">Dinner:</span> '    + s.psy.d + ' tbsp Psyllium');
+    if (s.psy.b) lines.push('<span class="ml">Breakfast:</span> ' + s.psy.b + ' tbsp Psyllium');
+    lines.forEach(function(l) {
+      var c = document.createElement('div'); c.className = 'sched-meal'; c.innerHTML = l; meals.appendChild(c);
+    });
+    div.appendChild(meals);
+
+    var tot = document.createElement('div');
+    tot.className = 'sched-totals';
+    tot.textContent = '🥔 ' + s.ps.tot + ' tbsp  ·  🌿 ' + s.psy.tot + ' tbsp  ·  ~' + (2 + s.psy.tot*6) + 'g fiber';
+    div.appendChild(tot);
+
+    if (s.note) {
+      var n = document.createElement('div'); n.className = 'sched-note'; n.textContent = s.note; div.appendChild(n);
+    }
+    el.appendChild(div);
+  });
+}
+
+render();
+</script>
+</body>
+</html>
