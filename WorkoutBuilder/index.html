@@ -814,6 +814,8 @@ let state = {
 
 let pickerState = { sectionId: null, activeSub: null, searchTerm: '' };
 let assignState = { dayKey: null, weekKey: null };
+let currentUser = null;
+let firestoreUnsubscribe = null;
 
 // ===== STORAGE =====
 function saveState() {
@@ -1433,8 +1435,869 @@ function seedWeek1FatLoss() {
   saveState();
 }
 
+// ===== PROGRAM LIBRARY SEED (36 workouts: 12 weeks × 3 goals) =====
+function seedProgramLibrary() {
+  const PREFIX = 'prog_';
+  // Skip if any prog_ workout already exists (already seeded)
+  if (Object.keys(state.workouts).some(id => id.startsWith(PREFIX))) return;
+
+  const now = Date.now();
+
+  function ex(name, sets, reps, tempo, rest, notes) {
+    return { id: '', name, muscles: '', sets, reps, tempo, rest, notes: notes || '' };
+  }
+
+  // Shared cool-down builders
+  function flCooldown() {
+    return [
+      ex('Cardio (Cool-Down)', '1', '1', '5 min', '0 sec', 'Gradually reduce speed'),
+      ex('Foam Roll: Calves, Adductors, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+      ex('Static Stretch: Calves, Adductors, Lats', '1', '1', '30 sec', '0 sec', 'Hold each stretch for 30 sec'),
+    ];
+  }
+  function flCooldownPh23() {
+    return [
+      ex('Cardio (Cool-Down)', '1', '1', '5 min', '0 sec', 'Gradually reduce speed'),
+      ex('Foam Roll: Calves, Adductors, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+      ex('Static Stretch: Calves, Adductors, Lats', '1', '1', '30 sec', '0 sec', 'Hold each stretch for 30 sec'),
+    ];
+  }
+  function mgCooldown() {
+    return [
+      ex('Foam Roll: Calves, Tensor Fascia Latae, Thoracic Spine', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+      ex('Static Stretch: Calves, Tensor Fascia Latae, Pectorals', '1', '1', '30 sec', '0 sec', 'Hold each stretch for 30 sec'),
+    ];
+  }
+  function spCooldown() {
+    return [
+      ex('Foam Roll: Calves, Adductors, Tensor Fascia Latae, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+      ex('Static Stretch: Calves, Adductors, Tensor Fascia Latae, Lats', '1', '1', '30 sec', '0 sec', 'Hold each stretch for 30 sec'),
+    ];
+  }
+
+  function workout(id, name, goal, phase, exercises, coaching) {
+    return { id, name, client: '', goal, phase, date: '', setting: 'Full Gym',
+      exercises: Object.assign({ warmup:[], activation:[], skilldevelopment:[], resistance:[], clientschoice:[], cooldown:[] }, exercises),
+      coaching: coaching || '', createdAt: now, updatedAt: now };
+  }
+
+  const ws = {};
+
+  // ═══════════════════════════════════════════
+  // FAT LOSS — 12 WEEKS
+  // ═══════════════════════════════════════════
+
+  // --- Phase 1: Weeks 1-4 ---
+  const flWarmupPh1 = [
+    ex('Foam Roll: Calves, Adductors, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Static Stretch: Calves, Adductors, Lats', '1', '1', '30 sec', '0 sec', 'Hold each stretch for 30 sec'),
+    ex('Cardio', '1', '1', '5 min', '60 sec', 'Brisk walk or slow jog for 5 minutes'),
+  ];
+
+  ws['prog_fl_w1'] = workout('prog_fl_w1', 'Fat Loss — Ph1 W1', 'Fat Loss', 1, {
+    warmup: flWarmupPh1,
+    activation: [
+      ex('Core: Floor Bridge', '1', '15', 'Slow', '0'),
+      ex('Core: Floor Cobra', '1', '15', 'Slow', '0'),
+      ex('Balance: Single-leg Balance Reach: Frontal Plane', '1', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Squat Pattern: Ball Squat', '1', '20', 'Slow', '0'),
+      ex('Hinge Pattern: Bodyweight Good Mornings', '1', '20', 'Slow', '0'),
+      ex('Push Pattern: Incline Push-up', '1', '20', 'Slow', '0', 'Use a wall, bench, or chair'),
+      ex('Pull Pattern: Standing Tubing Row', '1', '20', 'Slow', '0'),
+      ex('Press Pattern: Standing Tubing Shoulder Press', '1', '20', 'Slow', '90 sec'),
+      ex('Plank', '1', '1', 'Slow', '90 sec', 'Hold for 30 sec'),
+    ],
+    cooldown: flCooldown(),
+  }, 'Phase 1 Stabilization Endurance. Circuit format — 1 set each, move through all exercises with minimal rest. Focus on technique: slow controlled tempo throughout.');
+
+  ws['prog_fl_w2'] = workout('prog_fl_w2', 'Fat Loss — Ph1 W2', 'Fat Loss', 1, {
+    warmup: flWarmupPh1,
+    activation: [
+      ex('Core: Ball Bridge', '1', '15', 'Slow', '0'),
+      ex('Core: Ball Cobra', '1', '15', 'Slow', '0'),
+      ex('Balance: Single-leg Hip Rotation', '1', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Squat Pattern: Bodyweight Squat', '1', '20', 'Slow', '0'),
+      ex('Hinge Pattern: Romanian Deadlift', '1', '20', 'Slow', '0', 'Use light weight or bodyweight'),
+      ex('Push Pattern: Standing Tubing Chest Press', '1', '20', 'Slow', '0'),
+      ex('Pull Pattern: Inverted Row', '1', '20', 'Slow', '0', 'Use a Smith machine or bar in rack'),
+      ex('Press Pattern: Standing Dumbbell Shoulder Press', '1', '20', 'Slow', '90 sec'),
+      ex('Side Plank', '1', '1', 'Slow', '90 sec', 'Hold 30 sec each side'),
+    ],
+    cooldown: flCooldown(),
+  }, 'Phase 1 Stabilization Endurance. Same circuit format as Week 1 with exercise variations. Slow and controlled, emphasis on balance and stability.');
+
+  ws['prog_fl_w3'] = workout('prog_fl_w3', 'Fat Loss — Ph1 W3', 'Fat Loss', 1, {
+    warmup: flWarmupPh1,
+    activation: [
+      ex('Core: Bird Dog', '1', '16', 'Slow', '0', '8 each side'),
+      ex('Core: Palloff Press', '1', '16', 'Slow', '0', '8 each side'),
+      ex('Balance: Single-leg Lift and Chop', '1', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Squat Jump with Stabilization', '1', '8', 'Slow', '90 sec', 'Hold landing 3-5 sec'),
+    ],
+    resistance: [
+      ex('Total Body: Ball Squat, Curl to Press', '2', '15', 'Slow', '0'),
+      ex('Chest: Standing Cable Chest Press', '2', '15', 'Slow', '0'),
+      ex('Back: Standing Cable Row', '2', '15', 'Slow', '0'),
+      ex('Shoulders: Standing Dumbbell Scaption', '2', '15', 'Slow', '0'),
+      ex('Legs: Step-up to Balance', '2', '15', 'Slow', '90 sec'),
+      ex('Floor Bridge', '2', '15', 'Slow', '90 sec'),
+    ],
+    cooldown: flCooldown(),
+  }, 'Phase 1 Week 3. Volume increases to 2 sets. First plyometric introduced — hold landings 3-5 sec to build joint stability.');
+
+  ws['prog_fl_w4'] = workout('prog_fl_w4', 'Fat Loss — Ph1 W4', 'Fat Loss', 1, {
+    warmup: flWarmupPh1,
+    activation: [
+      ex('Core: Plank', '2', '1', 'Slow', '0', 'Hold for 30 sec'),
+      ex('Core: Side Plank', '2', '1', 'Slow', '0', 'Hold for 30 sec each side'),
+      ex('Balance: Single-leg Arm and Leg Motion', '2', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Box Jump-up with Stabilization', '2', '8', 'Slow', '90 sec', 'Hold landing 3-5 sec'),
+      ex('SAQ: Speed Ladder — One-ins, Two-ins, Side Shuffle', '2', '1', 'Moderate', '90 sec'),
+    ],
+    resistance: [
+      ex('Total-Body: Step-up, Balance, Curl to Press', '2', '15', 'Slow', '0'),
+      ex('Chest: Push-up', '2', '15', 'Slow', '0', 'Modified push-up if needed'),
+      ex('Back: Ball Cobra', '2', '15', 'Slow', '0'),
+      ex('Shoulders: Single-leg Dumbbell Scaption', '2', '15', 'Slow', '0'),
+      ex('Legs: Lunge to Balance', '2', '15', 'Slow', '90 sec'),
+      ex('Elliptical Machine', '1', '1', 'Moderate', '90 sec', 'Moderate-intensity for 10+ min'),
+    ],
+    cooldown: flCooldown(),
+  }, 'Phase 1 final week. SAQ introduced alongside plyometrics. Maintain 2 sets, slow tempo. Elliptical replaces last resistance slot to increase cardio output.');
+
+  // --- Phase 2: Weeks 5-8 ---
+  const flWarmupPh2 = [
+    ex('Foam Roll: Calves, Adductors, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Active Stretch: Calves, Adductors, Lats', '1', '10', '1-2 sec', '0 sec', 'Hold each stretch for 1-2 sec'),
+    ex('Cardio', '1', '1', '5 min', '60 sec', 'Brisk walk or slow jog for 5 minutes'),
+  ];
+
+  ws['prog_fl_w5'] = workout('prog_fl_w5', 'Fat Loss — Ph2 W5', 'Fat Loss', 2, {
+    warmup: flWarmupPh2,
+    activation: [
+      ex('Core: Ball Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Cable Rotation', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Squat', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Squat Jump', '2', '8', 'Repeating', '60 sec'),
+      ex('SAQ: Speed Ladder — One-ins, Two-ins, Side Shuffle', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Dumbbell Squat', '2', '12', 'Moderate/Slow', '0'),
+      ex('Chest: Dumbbell Chest Press', '2', '12', 'Moderate/Slow', '0', 'Modified push-up if needed'),
+      ex('Back: Lat Pulldown', '2', '12', 'Moderate/Slow', '0'),
+      ex('Shoulders: Shoulder Press Machine', '2', '12', 'Moderate/Slow', '0'),
+      ex('Standing Dumbbell Biceps Curls', '2', '12', 'Moderate', '0 sec'),
+      ex('Standing Triceps Pushdowns', '2', '12', 'Moderate', '60 sec'),
+    ],
+    cooldown: flCooldownPh23(),
+  }, 'Phase 2 Strength Endurance begins. Tempo shifts to Moderate/Slow. Reps drop to 12, more sets. Plyos are now Repeating (no stabilization hold). Push pace.');
+
+  ws['prog_fl_w6'] = workout('prog_fl_w6', 'Fat Loss — Ph2 W6', 'Fat Loss', 2, {
+    warmup: flWarmupPh2,
+    activation: [
+      ex('Core: Reverse Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Knee-up', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Squat Touchdown', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Tuck Jump', '2', '8', 'Repeating', '60 sec'),
+      ex('SAQ: Speed Ladder — One-ins, Two-ins, Side Shuffle', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Romanian Deadlift', '2', '12', 'Moderate/Slow', '0'),
+      ex('Chest: Barbell Bench Press', '2', '12', 'Moderate/Slow', '0'),
+      ex('Back: Seated Cable Row', '2', '12', 'Moderate/Slow', '0'),
+      ex('Shoulders: Standing Dumbbell Shoulder Press', '2', '12', 'Moderate/Slow', '0'),
+      ex('Plank', '2', '1', 'Moderate', '0 sec', 'Hold each set for 30 sec'),
+      ex('Floor Crunch', '2', '20', 'Moderate', '60 sec'),
+    ],
+    cooldown: flCooldownPh23(),
+  }, 'Phase 2 Week 6. Barbell movements introduced. Maintain Moderate/Slow tempo. Tuck jump is higher intensity than squat jump — focus on explosive takeoff.');
+
+  ws['prog_fl_w7'] = workout('prog_fl_w7', 'Fat Loss — Ph2 W7', 'Fat Loss', 2, {
+    warmup: [
+      ex('Foam Roll: Calves, Adductors, Tensor Fascia Latae, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+      ex('Active Stretch: Calves, Adductors, Lats', '1', '10', '1-2 sec', '0 sec', 'Hold each stretch for 1-2 sec'),
+      ex('Cardio', '1', '1', '5 min', '60 sec', 'Brisk walk or slow jog for 5 minutes'),
+    ],
+    activation: [
+      ex('Core: Cable Lift', '2', '12', 'Moderate', '0'),
+      ex('Core: Cable Chop', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Romanian Deadlift', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Lunge Jump', '2', '8', 'Repeating', '60 sec'),
+      ex('SAQ: Speed Ladder — One-ins, Two-ins, Side Shuffle', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Leg Press', '3', '10', 'Moderate/Slow', '0'),
+      ex('Chest: Barbell Bench Press', '3', '10', 'Moderate/Slow', '0'),
+      ex('Back: Seated Lat Pulldown', '3', '10', 'Moderate/Slow', '0'),
+      ex('Shoulders: Standing Dumbbell Lateral Raise', '3', '10', 'Moderate/Slow', '0'),
+      ex('Jump Rope', '1', '1', 'Moderate', '60 sec', 'Jump rope for 5 minutes'),
+    ],
+    cooldown: flCooldownPh23(),
+  }, 'Phase 2 Week 7. 3 sets × 10 reps. Lunge jump is the hardest plyo yet — alternate legs explosively. Add TFL to foam roll as volume increases.');
+
+  ws['prog_fl_w8'] = workout('prog_fl_w8', 'Fat Loss — Ph2 W8', 'Fat Loss', 2, {
+    warmup: [
+      ex('Foam Roll: Calves, Adductors, Tensor Fascia Latae, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+      ex('Active Stretch: Calves, Adductors, Lats', '1', '10', '1-2 sec', '0 sec', 'Hold each stretch for 1-2 sec'),
+      ex('Cardio', '1', '1', '5 min', '60 sec', 'Brisk walk or slow jog for 5 minutes'),
+    ],
+    activation: [
+      ex('Core: Ball Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Cable Rotation', '2', '12', 'Moderate', '0'),
+      ex('Balance: Lunge to Balance', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Butt Kick', '2', '8', 'Repeating', '60 sec'),
+      ex('SAQ: Speed Ladder — One-ins, Two-ins, Side Shuffle', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Dumbbell Squat', '3', '10', 'Moderate/Slow', '0'),
+      ex('Chest: Dumbbell Chest Press', '3', '10', 'Moderate/Slow', '0'),
+      ex('Back: Pull-up', '3', '10', 'Moderate/Slow', '0'),
+      ex('Shoulders: Seated Dumbbell Shoulder Press', '3', '10', 'Moderate/Slow', '0'),
+      ex('Cat and Camel Yoga Pose', '1', '1', 'Slow', '0 sec'),
+      ex("Child's Pose", '1', '1', 'Slow', '0 sec', 'Hold for 30 sec'),
+    ],
+    cooldown: flCooldownPh23(),
+  }, 'Phase 2 final week. Pull-ups introduced — use bands or assisted if needed. Yoga cool-down exercises added for mobility. Butt kicks are fast, explosive.');
+
+  // --- Phase 3: Weeks 9-12 ---
+  const flWarmupPh3 = [
+    ex('Foam Roll: Calves, Adductors, Tensor Fascia Latae, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Active Stretch: Calves, Adductors, Lats', '1', '10', '1-2 sec', '0 sec', 'Hold each stretch for 1-2 sec'),
+    ex('Cardio', '1', '1', '5 min', '60 sec', 'Brisk walk or slow jog for 5 minutes'),
+  ];
+
+  ws['prog_fl_w9'] = workout('prog_fl_w9', 'Fat Loss — Ph3 W9', 'Fat Loss', 3, {
+    warmup: flWarmupPh3,
+    activation: [
+      ex('Core: Reverse Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Back Extension', '2', '12', 'Moderate', '0'),
+      ex('Balance: Lunge to Balance', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Repeat Box Jumps', '2', '8', 'Repeating', '60 sec'),
+      ex('SAQ: Speed Ladder — One-ins, Two-ins, Side Shuffle', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Chest: Dumbbell Chest Press', '3', '12', 'Moderate', '30 sec'),
+      ex('Back: Lat Pulldown', '3', '12', 'Moderate', '30 sec'),
+      ex('Shoulders: Standing Dumbbell Shoulder Press', '3', '12', 'Moderate', '30 sec'),
+      ex('Punching Bag', '1', '1', 'Moderate', '60 sec', '5 minutes'),
+    ],
+    cooldown: flCooldownPh23(),
+  }, 'Phase 3 Muscular Development begins. Short 30-sec rest between sets (superset style). Box jumps — continuous reps, land and immediately jump again. Punching bag is the finisher.');
+
+  ws['prog_fl_w10'] = workout('prog_fl_w10', 'Fat Loss — Ph3 W10', 'Fat Loss', 3, {
+    warmup: flWarmupPh3,
+    activation: [
+      ex('Core: Ball Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Reverse Crunch', '2', '12', 'Moderate', '0'),
+      ex('Balance: Step-up to Balance', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Power Step-up', '2', '8', 'Repeating', '60 sec'),
+      ex('SAQ: Speed Ladder — One-ins, Two-ins, Side Shuffle', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Dumbbell Squat', '3', '12', 'Moderate', '30 sec'),
+      ex('Biceps: Standing Dumbbell Curl', '3', '12', 'Moderate', '30 sec'),
+      ex('Triceps: Cable Pushdown', '3', '12', 'Moderate', '30 sec'),
+      ex('Jump Rope', '1', '1', 'Moderate', '60 sec', '5 minutes'),
+    ],
+    cooldown: flCooldownPh23(),
+  }, 'Phase 3 Week 10. Power step-up — drive knee up explosively, step down controlled. Short rest periods keep heart rate elevated for fat loss effect.');
+
+  ws['prog_fl_w11'] = workout('prog_fl_w11', 'Fat Loss — Ph3 W11', 'Fat Loss', 3, {
+    warmup: flWarmupPh3,
+    activation: [
+      ex('Core: Cable Lift', '2', '12', 'Moderate', '0'),
+      ex('Core: Cable Chop', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Romanian Deadlift', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Squat Jump', '2', '8', 'Repeating', '60 sec'),
+      ex('SAQ: Speed Ladder — One-ins, Two-ins, Side Shuffle', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Chest: Barbell Chest Press', '4', '10', 'Moderate', '30 sec'),
+      ex('Back: Barbell Bent-over Row', '4', '10', 'Moderate', '30 sec'),
+      ex('Shoulders: Seated Shoulder Press Machine', '4', '10', 'Moderate', '30 sec'),
+      ex('Punching Bag', '1', '1', 'Moderate', '60 sec', '5 minutes'),
+    ],
+    cooldown: flCooldownPh23(),
+  }, 'Phase 3 Week 11. 4 sets × 10 with 30-sec rest. Barbell compound movements — highest strength stimulus of the program. Punching bag finisher again.');
+
+  ws['prog_fl_w12'] = workout('prog_fl_w12', 'Fat Loss — Ph3 W12', 'Fat Loss', 3, {
+    warmup: flWarmupPh3,
+    activation: [
+      ex('Core: Cable Rotation', '2', '12', 'Moderate', '0'),
+      ex('Core: Knee-up', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Squat Touchdown', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Tuck Jump', '2', '8', 'Repeating', '60 sec'),
+      ex('SAQ: Speed Ladder — One-ins, Two-ins, Side Shuffle', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Barbell Squat', '4', '10', 'Moderate', '30 sec'),
+      ex('Biceps: Standing Barbell Curl', '4', '10', 'Moderate', '30 sec'),
+      ex('Triceps: Cable Pushdown', '4', '10', 'Moderate', '30 sec'),
+      ex('Jump Rope', '1', '1', 'Moderate', '60 sec', '5 minutes'),
+    ],
+    cooldown: flCooldownPh23(),
+  }, 'Phase 3 final week. Barbell squat is the peak strength exercise. 4 × 10 with 30-sec rest is highly metabolically demanding. Finish strong — 12 weeks complete!');
+
+  // ═══════════════════════════════════════════
+  // MUSCLE GAIN — 12 WEEKS
+  // ═══════════════════════════════════════════
+
+  const mgWarmupPh1 = [
+    ex('Foam Roll: Calves, Tensor Fascia Latae, Thoracic Spine', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Static Stretch: Calves, Tensor Fascia Latae, Erector Spinae', '1', '1', '30 sec', '0 sec', 'Hold each stretch for 30 sec'),
+    ex('Dynamic Stretch: Tube Walking: Side to Side', '1', '10', 'Moderate', '60 sec'),
+  ];
+
+  // --- Phase 1: Weeks 1-3 ---
+  ws['prog_mg_w1'] = workout('prog_mg_w1', 'Muscle Gain — Ph1 W1', 'Muscle Gain', 1, {
+    warmup: mgWarmupPh1,
+    activation: [
+      ex('Core: Dead Bug', '1', '15', 'Slow', '0'),
+      ex('Core: Bird Dog', '1', '15', 'Slow', '0'),
+      ex('Balance: Single-leg Balance Reach', '1', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Squat Pattern: Ball Squat', '2', '15', 'Slow', '0'),
+      ex('Hinge Pattern: Single-leg Romanian Deadlift', '2', '15', 'Slow', '0'),
+      ex('Push Pattern: Tubing Chest Press', '2', '15', 'Slow', '0'),
+      ex('Pull Pattern: Tubing Row', '2', '15', 'Slow', '0'),
+      ex('Press Pattern: Standing Tubing Shoulder Press', '2', '15', 'Slow', '90 sec'),
+      ex('Calf Raise', '1', '20', 'Slow', '90 sec'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 1 Stabilization Endurance. No cardio — dynamic warm-up instead. 2 sets × 15 reps, slow tempo throughout. Build the foundation before adding load.');
+
+  ws['prog_mg_w2'] = workout('prog_mg_w2', 'Muscle Gain — Ph1 W2', 'Muscle Gain', 1, {
+    warmup: [
+      ex('Foam Roll: Calves, Tensor Fascia Latae, Thoracic Spine', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+      ex('Static Stretch: Calves, Tensor Fascia Latae, Erector Spinae', '1', '1', '30 sec', '0 sec', 'Hold each stretch for 30 sec'),
+      ex('Dynamic Stretch: Tube Walking: Side to Side', '1', '10', 'Moderate', '60 sec', '10 reps each direction'),
+    ],
+    activation: [
+      ex('Core: Plank', '1', '1', 'Slow', '0', 'Hold for 30 sec'),
+      ex('Core: Side Plank', '1', '1', 'Slow', '0', 'Hold for 30 sec each side'),
+      ex('Balance: Single-leg Windmill', '1', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Squat Pattern: Step-up to Balance', '2', '15', 'Slow', '0'),
+      ex('Hinge Pattern: Single-leg Romanian Deadlift', '2', '15', 'Slow', '0'),
+      ex('Push Pattern: Push-up', '2', '15', 'Slow', '0', 'Modified push-up if needed'),
+      ex('Pull Pattern: Suspension Trainer Row', '2', '15', 'Slow', '0'),
+      ex('Press Pattern: Standing Dumbbell Shoulder Press', '2', '15', 'Slow', '90 sec'),
+      ex('Stability Ball Hamstring Curl', '2', '15', 'Slow', '90 sec'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 1 Week 2. Suspension trainer and stability ball introduced. Maintain slow tempo and full range of motion on all exercises.');
+
+  ws['prog_mg_w3'] = workout('prog_mg_w3', 'Muscle Gain — Ph1 W3', 'Muscle Gain', 1, {
+    warmup: [
+      ex('Foam Roll: Calves, Tensor Fascia Latae, Thoracic Spine', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+      ex('Static Stretch: Calves, Tensor Fascia Latae, Erector Spinae', '1', '1', '30 sec', '0 sec', 'Hold each stretch for 30 sec'),
+      ex('Dynamic Stretch: Tube Walking: Side to Side', '1', '10', 'Moderate', '60 sec', '10 reps each leg'),
+    ],
+    activation: [
+      ex('Core: Fire Hydrant', '1', '16', 'Slow', '0', '8 each side'),
+      ex('Core: Palloff Press', '1', '16', 'Slow', '0', '8 each side'),
+      ex('Balance: Single-leg Lift and Chop', '1', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Squat Jump with Stabilization', '1', '8', 'Slow', '90 sec', 'Hold landing 3-5 sec'),
+    ],
+    resistance: [
+      ex('Total Body: Ball Squat, Curl, to Press', '2', '15', 'Slow', '0'),
+      ex('Chest: Single-leg Cable Chest Press', '2', '15', 'Slow', '0'),
+      ex('Back: Standing Lat Pulldown', '2', '15', 'Slow', '0'),
+      ex('Shoulders: Single-leg Scaption', '2', '15', 'Slow', '0'),
+      ex('Biceps: Single-leg Dumbbell Curl', '2', '15', 'Slow', '0'),
+      ex('Triceps: Supine Ball Dumbbell Triceps Extensions', '2', '15', 'Slow', '0'),
+      ex('Legs: Multiplanar Step-up to Balance', '2', '15', 'Slow', '90 sec'),
+      ex('Side Plank', '2', '1', 'Slow', '90 sec', 'Hold for 30 sec each side'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 1 final week. More volume — 8 exercises. Single-leg variations throughout for proprioception. First plyometric introduced.');
+
+  // --- Phase 2: Weeks 4-6 ---
+  const mgWarmupPh2 = [
+    ex('Foam Roll: Calves, Tensor Fascia Latae, Thoracic Spine', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Active Stretch: Calves, Tensor Fascia Latae, Erector Spinae', '1', '10', '1-2 sec', '0 sec', 'Hold each stretch for 1-2 sec'),
+    ex('Dynamic Stretch: Tube Walking: Side to Side', '1', '10', 'Moderate', '60 sec', '10 reps each leg'),
+  ];
+
+  ws['prog_mg_w4'] = workout('prog_mg_w4', 'Muscle Gain — Ph2 W4', 'Muscle Gain', 2, {
+    warmup: mgWarmupPh2,
+    activation: [
+      ex('Core: Ball Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Back Extension', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Squat', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Box Jump-up', '2', '8', 'Repeating', '60 sec'),
+    ],
+    resistance: [
+      ex('Chest: Dumbbell Chest Press', '2', '12', 'Moderate/Slow', '0 sec', 'Modified push-up if needed'),
+      ex('Back: Seated Cable Row', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Shoulders: Standing Dumbbell Shoulder Press', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Biceps: Biceps Curl Machine', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Triceps: Cable Pushdown', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Legs: Leg Press', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Plank', '2', '1', 'Slow', '60 sec', 'Hold for 30 sec'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 2 Strength Endurance begins. Active stretching replaces static. Moderate/Slow tempo, 2 × 12. Machine movements add load safely. Box jumps are Repeating (no stabilization hold).');
+
+  ws['prog_mg_w5'] = workout('prog_mg_w5', 'Muscle Gain — Ph2 W5', 'Muscle Gain', 2, {
+    warmup: mgWarmupPh2,
+    activation: [
+      ex('Core: Cable Lift', '2', '12', 'Moderate', '0'),
+      ex('Core: Cable Chop', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Squat', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Box Jump-down', '2', '8', 'Repeating', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Romanian Deadlift', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Chest: Dumbbell Chest Press', '2', '12', 'Moderate/Slow', '0 sec', 'Modified push-up if needed'),
+      ex('Back: Lat Pulldown', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Shoulders: Shoulder Press Machine', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Biceps: Standing Dumbbell Curl', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Triceps: Cable Push-down', '2', '12', 'Moderate/Slow', '0 sec'),
+      ex('Floor Crunch', '3', '20', 'Moderate', '60 sec'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 2 Week 5. Box jump-down — step up, jump down and land softly. 7 resistance exercises with floor crunch finisher. Full body coverage.');
+
+  ws['prog_mg_w6'] = workout('prog_mg_w6', 'Muscle Gain — Ph2 W6', 'Muscle Gain', 2, {
+    warmup: mgWarmupPh2,
+    activation: [
+      ex('Core: Reverse Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Knee-up', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Squat Touchdown', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Tuck Jump', '2', '8', 'Repeating', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Barbell Squat', '3', '10', 'Moderate/Slow', '0 sec'),
+      ex('Chest: Barbell Bench Press', '3', '10', 'Moderate/Slow', '0 sec'),
+      ex('Back: Seated Cable Row', '3', '10', 'Moderate/Slow', '0 sec'),
+      ex('Shoulders: Standing Dumbbell Shoulder Press', '3', '10', 'Moderate/Slow', '0 sec'),
+      ex('Biceps: Standing Barbell Curl', '3', '10', 'Moderate/Slow', '0 sec'),
+      ex('Triceps: Cable Push-down', '3', '10', 'Moderate/Slow', '0 sec'),
+      ex('Calf Raise', '3', '8', 'Moderate', '60 sec'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 2 final week. Volume jumps to 3 × 10 with barbell compounds. Tuck jump demands maximal power. Calf raises added for lower leg development.');
+
+  // --- Phase 3: Weeks 7-9 ---
+  const mgWarmupPh3 = [
+    ex('Foam Roll: Calves, Tensor Fascia Latae, Thoracic Spine', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Active Stretch: Calves, Tensor Fascia Latae, Erector Spinae', '1', '10', '1-2 sec', '0 sec', 'Hold each stretch for 1-2 sec'),
+    ex('Dynamic Stretch: Tube Walking: Side to Side', '1', '10', 'Moderate', '60 sec', '10 reps each leg'),
+  ];
+
+  ws['prog_mg_w7'] = workout('prog_mg_w7', 'Muscle Gain — Ph3 W7', 'Muscle Gain', 3, {
+    warmup: mgWarmupPh3,
+    activation: [
+      ex('Core: Cable Lift', '2', '12', 'Moderate', '0'),
+      ex('Core: Cable Chop', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Romanian Deadlift', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Chest: Barbell Bench Press', '4', '10', 'Moderate', '30 sec'),
+      ex('Back: Pull-ups', '4', '10', 'Moderate', '30 sec'),
+      ex('Punching Bag', '1', '1', 'Moderate', '60 sec', 'Punch bag for 5 minutes'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 3 Muscular Development. Short 30-sec rest (supersets). 4 × 10 chest + back focus. Pull-ups are the gold standard back exercise — use bands if needed. Plyometrics stop here.');
+
+  ws['prog_mg_w8'] = workout('prog_mg_w8', 'Muscle Gain — Ph3 W8', 'Muscle Gain', 3, {
+    warmup: mgWarmupPh3,
+    activation: [
+      ex('Core: Reverse Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Cable Rotation', '2', '12', 'Moderate', '0'),
+      ex('Balance: Step-up to Balance', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Legs: Barbell Squat', '4', '10', 'Moderate', '30 sec'),
+      ex('Machine Hamstring Curls', '3', '10', 'Moderate', '30 sec'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 3 Week 8. Legs focus. Heavy barbell squat paired with machine hamstring curl. Short rest keeps metabolic demand high. Lower volume = heavier weight.');
+
+  ws['prog_mg_w9'] = workout('prog_mg_w9', 'Muscle Gain — Ph3 W9', 'Muscle Gain', 3, {
+    warmup: mgWarmupPh3,
+    activation: [
+      ex('Core: Ball Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Back Extension', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Romanian Deadlift', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Shoulders: Standing Dumbbell Shoulder Press', '4', '10', 'Moderate', '30 sec'),
+      ex('Biceps: Biceps Curl Machine', '4', '10', 'Moderate', '30 sec'),
+      ex('Triceps: Cable Pushdown', '4', '10', 'Moderate', '30 sec'),
+      ex('Punching Bag', '1', '1', 'Moderate', '60 sec', '5-10 minutes'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 3 final week. Shoulders/arms focus day. 4 × 10 × 3 exercises with 30-sec rest is a high-volume arm pump. Punching bag finisher for conditioning.');
+
+  // --- Phase 4: Weeks 10-12 ---
+  const mgWarmupPh4 = [
+    ex('Foam Roll: Calves, Tensor Fascia Latae, Thoracic Spine', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Active Stretch: Calves, Tensor Fascia Latae, Erector Spinae', '1', '10', '1-2 sec', '0 sec', 'Hold each stretch for 1-2 sec'),
+    ex('Dynamic Stretch: Tube Walking: Side to Side', '1', '10', 'Moderate', '60 sec', '10 reps each direction'),
+  ];
+
+  ws['prog_mg_w10'] = workout('prog_mg_w10', 'Muscle Gain — Ph4 W10', 'Muscle Gain', 4, {
+    warmup: mgWarmupPh4,
+    activation: [
+      ex('Core: Ball Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Reverse Crunch', '2', '12', 'Moderate', '0'),
+      ex('Balance: Step-up to Balance', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Chest: Barbell Bench Press', '5', '5', 'Explosive', '3 min'),
+      ex('Back: Barbell Bent Over Row', '5', '5', 'Explosive', '3 min'),
+      ex('Floor Crunch', '1', '20', 'Moderate', '30 sec'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 4 Maximal Strength. 5 × 5 with 3-min rest — this is heavy. Explosive intent on every rep. Go as heavy as possible with perfect form. Two big compound movements only.');
+
+  ws['prog_mg_w11'] = workout('prog_mg_w11', 'Muscle Gain — Ph4 W11', 'Muscle Gain', 4, {
+    warmup: mgWarmupPh4,
+    activation: [
+      ex('Core: Cable Lift', '2', '12', 'Moderate', '0'),
+      ex('Core: Cable Chop', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Romanian Deadlift', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Legs: Barbell Squat', '5', '5', 'Explosive', '3 min'),
+      ex('Treadmill Walking', '1', '1', '5 min', '60 sec', 'Walk for 5 minutes'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 4 Week 11. Barbell squat 5 × 5 — the most demanding exercise in this program. Load the bar heavy. 3-min rest is required to maintain force output. Treadmill walk is active recovery.');
+
+  ws['prog_mg_w12'] = workout('prog_mg_w12', 'Muscle Gain — Ph4 W12', 'Muscle Gain', 4, {
+    warmup: mgWarmupPh4,
+    activation: [
+      ex('Core: Cable Rotation', '2', '12', 'Moderate', '0'),
+      ex('Core: Knee-up', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Squat Touchdown', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Shoulders: Standing Barbell Shoulder Press', '5', '5', 'Explosive', '5 min'),
+      ex('Biceps: Biceps Curl Machine', '5', '5', 'Explosive', '5 min'),
+      ex('Triceps: Cable Pushdown', '5', '5', 'Explosive', '5 min'),
+      ex('Back Extension', '2', '10', 'Moderate', '60 sec'),
+    ],
+    cooldown: mgCooldown(),
+  }, 'Phase 4 final week. Overhead press + arms — 5 × 5 with 5-min rest. Max strength protocol. 12-week program complete — track your 1RM for a baseline on your next cycle.');
+
+  // ═══════════════════════════════════════════
+  // SPORT PERFORMANCE — 12 WEEKS
+  // ═══════════════════════════════════════════
+
+  const spWarmupPh1 = [
+    ex('Foam Roll: Calves, Adductors, Tensor Fascia Latae, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Static Stretch: Calves, Adductors, Tensor Fascia Latae, Lats', '1', '1', '30 sec', '0 sec', 'Hold each stretch for 30 sec'),
+    ex('Dynamic Stretch: Leg Swings (Side-to-Side & Front-to-Back)', '1', '10', 'Moderate', '90 sec', '10 reps each leg'),
+  ];
+
+  // --- Phase 1: Weeks 1-4 ---
+  ws['prog_sp_w1'] = workout('prog_sp_w1', 'Sport Perf — Ph1 W1', 'Sport Performance', 1, {
+    warmup: spWarmupPh1,
+    activation: [
+      ex('Core: Ball Bridge', '1', '15', 'Slow', '0'),
+      ex('Core: Ball Cobra', '1', '15', 'Slow', '0'),
+      ex('Balance: Single-leg Hip Rotation', '1', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Squat Jump with Stabilization', '1', '8', 'Slow', '90 sec', 'Hold landing 3-5 sec'),
+      ex('Cone Drills: 5-10-5 Drill, Box Drill', '1', '1', 'Moderate', '90 sec'),
+    ],
+    resistance: [
+      ex('Squat Pattern: Ball Squat', '2', '15', 'Slow', '0'),
+      ex('Hinge Pattern: Single-leg Romanian Deadlift', '2', '15', 'Slow', '0'),
+      ex('Push Pattern: Push-up with Rotation', '2', '15', 'Slow', '0'),
+      ex('Pull Pattern: Single-leg Cable Row', '2', '15', 'Slow', '0'),
+      ex('Press Pattern: Single-leg Dumbbell Shoulder Press', '2', '15', 'Slow', '90 sec'),
+      ex('Plank', '2', '1', 'Slow', '90 sec', 'Hold for 30 sec'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 1 Stabilization Endurance. SAQ from day one — cone drills build change-of-direction mechanics. Unilateral resistance throughout. Plyos: hold landing 3-5 sec.');
+
+  ws['prog_sp_w2'] = workout('prog_sp_w2', 'Sport Perf — Ph1 W2', 'Sport Performance', 1, {
+    warmup: spWarmupPh1,
+    activation: [
+      ex('Core: Plank', '1', '1', 'Slow', '0', 'Hold for 30 sec'),
+      ex('Core: Side Plank', '1', '1', 'Slow', '0', 'Hold for 30 sec each side'),
+      ex('Balance: Single-leg Windmill', '1', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Box Jump-up with Stabilization', '1', '8', 'Slow', '90 sec', 'Hold landing 3-5 sec'),
+      ex('Cone Drills: 5-10-5 Drill, Box Drill', '1', '1', 'Moderate', '90 sec'),
+    ],
+    resistance: [
+      ex('Squat Pattern: Step-up to Balance', '2', '15', 'Slow', '0'),
+      ex('Hinge Pattern: Kettlebell Single-leg Romanian Deadlift', '2', '15', 'Slow', '0'),
+      ex('Push Pattern: Suspension Push-up', '2', '15', 'Slow', '0'),
+      ex('Pull Pattern: Suspension Row', '2', '15', 'Slow', '0'),
+      ex('Press Pattern: Standing Dumbbell Arnold Press', '2', '15', 'Slow', '90 sec'),
+      ex('Biceps Curls', '2', '15', 'Slow', '90 sec'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 1 Week 2. Suspension trainer introduced for unstable surface training. Box jump-up — step up to box and jump off the other side, hold landing.');
+
+  ws['prog_sp_w3'] = workout('prog_sp_w3', 'Sport Perf — Ph1 W3', 'Sport Performance', 1, {
+    warmup: spWarmupPh1,
+    activation: [
+      ex('Core: Fire Hydrant', '1', '16', 'Slow', '0', '8 each side'),
+      ex('Core: Palloff Press', '1', '16', 'Slow', '0', '8 each side'),
+      ex('Balance: Single-leg Arm and Leg Motion', '1', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Squat Jump-down with Stabilization', '1', '8', 'Slow', '90 sec', 'Hold landing 3-5 sec'),
+      ex('Cone Drills: 5-10-5 Drill, Box Drill', '1', '1', 'Moderate', '90 sec'),
+    ],
+    resistance: [
+      ex('Total Body: Single-leg Squat to Row', '3', '12', 'Slow', '0', '6 reps each leg'),
+      ex('Chest: Single-leg Cable Chest Press', '3', '12', 'Slow', '0'),
+      ex('Back: Single-leg Cable Row', '3', '12', 'Slow', '0'),
+      ex('Shoulders: Single-leg Scaption', '3', '12', 'Slow', '0'),
+      ex('Legs: Step-up to Balance', '3', '12', 'Slow', '90 sec'),
+      ex('Triceps Pushdown', '3', '12', 'Slow', '90 sec'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 1 Week 3. Volume increases to 3 × 12. Single-leg on every movement — sport performance demands unilateral strength and stability.');
+
+  ws['prog_sp_w4'] = workout('prog_sp_w4', 'Sport Perf — Ph1 W4', 'Sport Performance', 1, {
+    warmup: spWarmupPh1,
+    activation: [
+      ex('Core: Dead Bug', '2', '16', 'Slow', '0', '8 reps each side'),
+      ex("Core: Farmer's Carry", '2', '1', 'Slow', '0', '30 feet up and back'),
+      ex('Balance: Single-leg Throw and Catch', '2', '16', 'Slow', '90 sec', '8 reps each leg'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Multiplanar Jump with Stabilization', '2', '8', 'Slow', '90 sec', 'Hold landing 3-5 sec'),
+      ex('Cone Drills: 5-10-5 Drill, Box Drill', '2', '1', 'Moderate', '90 sec'),
+    ],
+    resistance: [
+      ex("Total-Body: Single-leg Squat, Curl to Overhead Press", '3', '12', 'Slow', '0'),
+      ex('Chest: Push-Up: Hands on Ball', '3', '12', 'Slow', '0'),
+      ex('Back: Ball Dumbbell Row', '3', '12', 'Slow', '0'),
+      ex('Shoulders: Ball Combo II', '3', '12', 'Slow', '0'),
+      ex('Legs: Single-leg Romanian Deadlift', '3', '12', 'Slow', '90 sec'),
+      ex('Jump Rope', '1', '1', '5 min', '90 sec', '5 min of jump rope'),
+    ],
+    cooldown: spCooldown(),
+  }, "Phase 1 final week. Farmer's carry builds grip and core bracing. Multiplanar jumps prepare for multi-directional sport demands. Hands-on-ball push-up creates instability.");
+
+  // --- Phase 2: Weeks 5-8 ---
+  const spWarmupPh2 = [
+    ex('Foam Roll: Calves, Adductors, Tensor Fascia Latae, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Active Stretch: Calves, Adductors, Tensor Fascia Latae', '1', '10', '1-2 sec', '0 sec', 'Hold each stretch for 1-2 sec'),
+    ex('Dynamic Stretch: Leg Swings (Side-to-Side & Front-to-Back)', '1', '10', 'Moderate', '90 sec', '10 reps each leg'),
+  ];
+
+  ws['prog_sp_w5'] = workout('prog_sp_w5', 'Sport Perf — Ph2 W5', 'Sport Performance', 2, {
+    warmup: spWarmupPh2,
+    activation: [
+      ex('Core: Reverse Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Knee-up', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Romanian Deadlift', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Squat Jump', '2', '8', 'Repeating', '60 sec'),
+      ex('Cone Drills: 5-10-5 Drill, Modified Box Drill, L.E.F.T. Drill', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Leg Press', '2', '12', 'Moderate/Slow', '0'),
+      ex('Chest: Dumbbell Chest Press', '2', '12', 'Moderate/Slow', '0'),
+      ex('Back: Pull-up', '2', '12', 'Moderate/Slow', '0'),
+      ex('Shoulders: Shoulder Press Machine', '2', '12', 'Moderate/Slow', '0'),
+      ex('Floor Crunch', '2', '20', 'Moderate', '60 sec'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 2 Strength Endurance. Cone drills expand to L.E.F.T. drill — sport-specific footwork patterns. Plyos shift to Repeating tempo (no hold). Active stretching replaces static.');
+
+  ws['prog_sp_w6'] = workout('prog_sp_w6', 'Sport Perf — Ph2 W6', 'Sport Performance', 2, {
+    warmup: spWarmupPh2,
+    activation: [
+      ex('Core: Ball Crunch', '2', '12', 'Moderate', '0'),
+      ex('Core: Reverse Crunch', '2', '12', 'Moderate', '0'),
+      ex('Balance: Single-leg Squat Touchdown', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Tuck Jump', '2', '8', 'Repeating', '60 sec'),
+      ex('Cone Drills: 5-10-5 Drill, Modified Box Drill, L.E.F.T. Drill', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Romanian Deadlift', '2', '12', 'Moderate/Slow', '0'),
+      ex('Chest: Barbell Bench Press', '2', '12', 'Moderate/Slow', '0'),
+      ex('Back: Seated Cable Row', '2', '12', 'Moderate/Slow', '0'),
+      ex('Shoulders: Standing Kettlebell Shoulder Press', '2', '12', 'Moderate/Slow', '0'),
+      ex('Plank', '2', '1', 'Moderate', '0 sec', 'Hold each set for 30 sec'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 2 Week 6. Kettlebell shoulder press adds instability. Tuck jump demands maximal power output. All SAQ drills at Fast tempo — push the speed.');
+
+  ws['prog_sp_w7'] = workout('prog_sp_w7', 'Sport Perf — Ph2 W7', 'Sport Performance', 2, {
+    warmup: spWarmupPh2,
+    activation: [
+      ex('Core: Cable Rotation', '2', '12', 'Moderate', '0'),
+      ex('Core: Back Extension', '2', '12', 'Moderate', '0'),
+      ex('Balance: Multiplanar Lunge to Balance', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Repeat Box Jumps', '2', '8', 'Repeating', '60 sec'),
+      ex('Cone Drills: 5-10-5 Drill, Modified Box Drill, L.E.F.T. Drill', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Multiplanar Lunges', '3', '8', 'Moderate/Slow', '0'),
+      ex('Chest: Dumbbell Chest Press', '3', '8', 'Moderate/Slow', '0'),
+      ex('Back: Bent Over Barbell Row', '3', '8', 'Moderate/Slow', '0'),
+      ex('Shoulders: Standing Dumbbell Lateral Raise', '3', '8', 'Moderate/Slow', '0'),
+      ex('Jump Rope', '1', '1', 'Moderate', '60 sec', 'Jump rope for 5 minutes'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 2 Week 7. Multiplanar lunges — forward, lateral, and rotational. Volume increases to 3 × 8. Bent over barbell row builds posterior chain for sport.');
+
+  ws['prog_sp_w8'] = workout('prog_sp_w8', 'Sport Perf — Ph2 W8', 'Sport Performance', 2, {
+    warmup: spWarmupPh2,
+    activation: [
+      ex('Core: Cable Lift', '2', '12', 'Moderate', '0'),
+      ex('Core: Cable Chop', '2', '12', 'Moderate', '0'),
+      ex('Balance: Multiplanar Step-up to Balance', '2', '12', 'Moderate', '60 sec'),
+    ],
+    skilldevelopment: [
+      ex('Plyometric: Butt Kick', '2', '8', 'Repeating', '60 sec'),
+      ex('Cone Drills: 5-10-5 Drill, Modified Box Drill, L.E.F.T. Drill', '2', '1', 'Fast', '60 sec'),
+    ],
+    resistance: [
+      ex('Legs: Kettlebell Goblet Squat', '3', '8', 'Moderate/Slow', '0'),
+      ex('Chest: Dumbbell Chest Press', '3', '8', 'Moderate/Slow', '0'),
+      ex('Back: Seated Cable Row', '3', '8', 'Moderate/Slow', '0'),
+      ex('Shoulders: Seated Dumbbell Shoulder Press', '3', '8', 'Moderate/Slow', '0'),
+      ex('Speed Ladder: 1-ins, 2-ins, Side Shuffle', '1', '1', 'Moderate', '60 sec'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 2 final week. Speed ladder added as a resistance finisher. Multiplanar step-ups — front, side, and diagonal. Kettlebell goblet squat reinforces core bracing.');
+
+  // --- Phase 5: Weeks 9-12 ---
+  const spWarmupPh5 = [
+    ex('Foam Roll: Calves, Adductors, Tensor Fascia Latae, Lats', '1', '1', '30 sec', '0 sec', 'Hold tender spot for 30 sec'),
+    ex('Dynamic Stretch: Leg Swings (Side-to-Side & Front-to-Back)', '1', '10', 'Moderate', '60 sec', '10 reps each leg'),
+  ];
+
+  ws['prog_sp_w9'] = workout('prog_sp_w9', 'Sport Perf — Ph5 W9', 'Sport Performance', 5, {
+    warmup: spWarmupPh5,
+    activation: [
+      ex('Core: Palloff Press', '2', '12', 'Slow', '0'),
+      ex('Balance: Multiplanar Hop with Stabilization', '2', '12', 'Controlled', '60 sec', 'Hold landing 3-5 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Legs: Barbell Squat', '4', '5', 'Explosive', '0'),
+      ex('Chest: Dumbbell Chest Press', '4', '5', 'Explosive', '0'),
+      ex('Back: Seated Cable Row', '4', '5', 'Explosive', '0'),
+      ex('Shoulders: Shoulder Press Machine', '4', '5', 'Explosive', '0'),
+      ex('Punching Bag', '1', '1', 'Explosive', '2 min', 'Hit punching bag for 2 min'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 5 Power Training begins. Skips Phases 3-4. Explosive intent on every rep — move the weight as fast as possible. 4 × 5 is low rep for neural power adaptation. Multiplanar hops w/ stabilization in warm-up.');
+
+  ws['prog_sp_w10'] = workout('prog_sp_w10', 'Sport Perf — Ph5 W10', 'Sport Performance', 5, {
+    warmup: spWarmupPh5,
+    activation: [
+      ex('Core: Cable Rotation', '2', '12', 'Moderate', '0 sec'),
+      ex('Balance: Single-leg Hop-up with Stabilization', '2', '12', 'Controlled', '60 sec', 'Hold landing 3-5 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Legs: Barbell Deadlift', '4', '5', 'Explosive', '0'),
+      ex('Chest: Incline Dumbbell Chest Press', '4', '5', 'Explosive', '0'),
+      ex('Back: Lat Pulldown', '4', '5', 'Explosive', '0'),
+      ex('Shoulders: Seated Dumbbell Shoulder Press', '4', '5', 'Explosive', '0'),
+      ex('Jump Rope', '1', '1', 'Moderate', '60 sec', '5 minutes'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 5 Week 10. Barbell deadlift — most athletic pulling movement. Incline press shifts upper chest emphasis. Single-leg hop-ups build explosive unilateral power.');
+
+  ws['prog_sp_w11'] = workout('prog_sp_w11', 'Sport Perf — Ph5 W11', 'Sport Performance', 5, {
+    warmup: spWarmupPh5,
+    activation: [
+      ex('Core: Cable Lift', '2', '12', 'Moderate', '0 sec'),
+      ex('Balance: Single-leg Hop-down with Stabilization', '2', '12', 'Controlled', '60 sec', 'Hold landing 3-5 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Legs: Leg Press', '5', '5', 'Explosive', '0'),
+      ex('Chest: Chest Press Machine', '5', '5', 'Explosive', '0'),
+      ex('Back: Lat Pulldown', '5', '5', 'Explosive', '0'),
+      ex('Shoulders: Shoulder Press Machine', '5', '5', 'Explosive', '0'),
+      ex('Dumbbell Biceps Curls', '3', '10', 'Moderate', '60 sec'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 5 Week 11. 5 × 5 — near max effort. Single-leg hop-downs demand eccentric control at high velocity. Machine movements allow max force output safely at this intensity.');
+
+  ws['prog_sp_w12'] = workout('prog_sp_w12', 'Sport Perf — Ph5 W12', 'Sport Performance', 5, {
+    warmup: spWarmupPh5,
+    activation: [
+      ex('Core: Cable Chop', '2', '12', 'Moderate', '0 sec'),
+      ex('Balance: Multiplanar Hop with Stabilization', '2', '12', 'Controlled', '60 sec', 'Hold landing 3-5 sec'),
+    ],
+    skilldevelopment: [],
+    resistance: [
+      ex('Legs: Dumbbell Squat', '5', '5', 'Explosive', '0'),
+      ex('Chest: Barbell Bench Press', '5', '5', 'Explosive', '0'),
+      ex('Back: Seated Cable Row', '5', '5', 'Explosive', '0'),
+      ex('Shoulders: Seated Dumbbell Shoulder Press', '5', '5', 'Explosive', '0'),
+      ex('Cable Pushdown', '3', '10', 'Moderate', '60 sec'),
+    ],
+    cooldown: spCooldown(),
+  }, 'Phase 5 final week. 5 × 5 barbell bench press peak. Multiplanar hops return — your landing mechanics should be dramatically better than Week 1. 12-week Sport Performance program complete!');
+
+  // ─── Commit all workouts to state ───
+  Object.assign(state.workouts, ws);
+  saveState();
+}
+
 // ===== INIT =====
-loadState(); seedWeek1FatLoss(); renderWeek();
+loadState(); seedWeek1FatLoss(); seedProgramLibrary(); renderWeek();
 
 // ===== FIREBASE =====
 const firebaseConfig = {
@@ -1448,8 +2311,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-let currentUser = null;
-let firestoreUnsubscribe = null;
 
 function toggleAuth() {
   if (currentUser) {
