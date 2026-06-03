@@ -1363,7 +1363,15 @@ function seedWeek1FatLoss() {
   if (ids.every(id => state.workouts[id])) return; // already seeded
   const labels = ['Monday','Wednesday','Friday'];
   const days   = ['Mon','Wed','Fri'];
-  const dates  = ['2026-05-25','2026-05-27','2026-05-29'];
+  // Calculate upcoming Mon/Wed/Fri dynamically
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun,1=Mon,...
+  const toMon = (dow === 0) ? 1 : (8 - dow) % 7 || 7;
+  const nextMon = new Date(today); nextMon.setDate(today.getDate() + toMon);
+  const nextWed = new Date(nextMon); nextWed.setDate(nextMon.getDate() + 2);
+  const nextFri = new Date(nextMon); nextFri.setDate(nextMon.getDate() + 4);
+  const fmt = d => d.toISOString().slice(0,10);
+  const dates = [fmt(nextMon), fmt(nextWed), fmt(nextFri)];
 
   function makeExercises() {
     return {
@@ -1411,7 +1419,12 @@ function seedWeek1FatLoss() {
     };
   });
 
-  const weekKey = getWeekKey(1);
+  // Find the week key for the upcoming Monday
+  const weekKey = (()=>{
+    const y = nextMon.getFullYear(); const s = new Date(y,0,1);
+    const w = Math.ceil(((nextMon-s)/86400000 + s.getDay()+1)/7);
+    return `${y}-W${String(w).padStart(2,'0')}`;
+  })();
   if (!state.weekPlans[weekKey]) state.weekPlans[weekKey] = {};
   days.forEach((day, i) => {
     if (!state.weekPlans[weekKey][day]) state.weekPlans[weekKey][day] = [];
