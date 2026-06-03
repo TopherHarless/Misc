@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NASM OPT Workout Builder</title>
+<style>
+  /* ===== BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1a3a6b;
+    --navy-dark: #122a50;
+    --navy-light: #2a5298;
+    --blue-section: #4a7bc4;
+    --blue-section-light: #d6e4f7;
+    --accent: #e8861a;
+    --white: #ffffff;
+    --gray-100: #f5f7fa;
+    --gray-200: #e8ecf0;
+    --gray-300: #d0d7e0;
+    --gray-500: #8a96a3;
+    --gray-700: #4a5568;
+    --text: #1a202c;
+    --red: #e53e3e;
+    --green: #38a169;
+    --phase-badge: #e8f4d4;
+    --phase-badge-text: #2d6a1e;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--gray-100); color: var(--text); min-height: 100vh; }
+
+  /* ===== APP SHELL ===== */
+  #app-header {
+    background: var(--navy);
+    color: white;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 56px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  #app-header .logo { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
+  #app-header .logo span { color: #f0a040; }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    color: rgba(255,255,255,0.7);
+    padding: 6px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.15s;
+    border: none;
+    background: none;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { color: white; background: rgba(255,255,255,0.12); }
+  .nav-tab.active { color: white; background: rgba(255,255,255,0.2); }
+  #app-content { max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
+
+  /* ===== VIEWS ===== */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ===== WEEK PLANNER ===== */
+  .week-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .week-header h2 { font-size: 22px; font-weight: 700; color: var(--navy); }
+  .week-nav { display: flex; align-items: center; gap: 12px; }
+  .week-label { font-size: 15px; font-weight: 600; color: var(--navy); min-width: 180px; text-align: center; }
+  .btn-icon { background: var(--white); border: 1px solid var(--gray-300); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--navy); transition: all 0.15s; }
+  .btn-icon:hover { background: var(--blue-section-light); border-color: var(--navy-light); }
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
+  .day-card {
+    background: var(--white);
+    border-radius: 10px;
+    border: 2px solid var(--gray-200);
+    min-height: 160px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+    display: flex;
+    flex-direction: column;
+  }
+  .day-card:hover { border-color: var(--navy-light); }
+  .day-card.has-workout { border-color: var(--blue-section); }
+  .day-header {
+    background: var(--navy);
+    color: white;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .day-header .date-num { font-size: 16px; font-weight: 700; }
+  .day-body { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .day-workout-pill {
+    background: var(--blue-section-light);
+    border: 1px solid var(--blue-section);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    transition: background 0.15s;
+  }
+  .day-workout-pill:hover { background: #c5d9f2; }
+  .pill-name { font-weight: 600; color: var(--navy); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill-phase { background: var(--navy); color: white; border-radius: 3px; padding: 1px 5px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .pill-remove { color: var(--gray-500); cursor: pointer; font-size: 14px; line-height: 1; flex-shrink: 0; }
+  .pill-remove:hover { color: var(--red); }
+  .day-add-btn {
+    color: var(--gray-500);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px dashed var(--gray-300);
+    justify-content: center;
+    transition: all 0.15s;
+    margin-top: auto;
+  }
+  .day-add-btn:hover { color: var(--navy); border-color: var(--navy-light); background: var(--blue-section-light); }
+  .day-rest { color: var(--gray-500); font-size: 12px; text-align: center; padding: 16px 0; font-style: italic; }
+
+  /* ===== WORKOUT LIBRARY ===== */
+  .library-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .library-header h2 { font-size: 22px; font-weight: 700; color: var(--navy); }
+  .workout-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .workout-card {
+    background: var(--white);
+    border-radius: 10px;
+    border: 2px solid var(--gray-200);
+    overflow: hidden;
+    transition: all 0.15s;
+  }
+  .workout-card:hover { border-color: var(--navy-light); box-shadow: 0 4px 16px rgba(26,58,107,0.12); transform: translateY(-1px); }
+  .workout-card-header { background: var(--navy); color: white; padding: 14px 16px; }
+  .workout-card-header .wc-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .workout-card-header .wc-meta { font-size: 12px; color: rgba(255,255,255,0.7); display: flex; gap: 12px; }
+  .workout-card-body { padding: 14px 16px; }
+  .wc-sections { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+  .wc-section-tag { background: var(--blue-section-light); color: var(--navy); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+  .wc-exercise-count { color: var(--gray-500); font-size: 12px; }
+  .workout-card-actions { padding: 10px 16px; border-top: 1px solid var(--gray-200); display: flex; gap: 8px; }
+  .btn { border: none; border-radius: 6px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-primary:hover { background: var(--navy-light); }
+  .btn-secondary { background: var(--gray-200); color: var(--gray-700); }
+  .btn-secondary:hover { background: var(--gray-300); }
+  .btn-outline { background: transparent; color: var(--navy); border: 1px solid var(--navy-light); }
+  .btn-outline:hover { background: var(--blue-section-light); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid #fc8181; }
+  .btn-danger:hover { background: #fff5f5; }
+  .btn-success { background: var(--green); color: white; }
+  .btn-success:hover { background: #2f855a; }
+  .btn-accent { background: var(--accent); color: white; }
+  .btn-accent:hover { background: #d4751a; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .new-workout-card {
+    background: white;
+    border-radius: 10px;
+    border: 2px dashed var(--gray-300);
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--gray-500);
+  }
+  .new-workout-card:hover { border-color: var(--navy-light); color: var(--navy); background: var(--blue-section-light); }
+  .new-workout-card .plus { font-size: 32px; line-height: 1; }
+  .new-workout-card .label { font-size: 14px; font-weight: 600; }
+
+  /* ===== WORKOUT BUILDER ===== */
+  .builder-topbar {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid var(--gray-200);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .field-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
+  .field-group label { font-size: 11px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+  .field-group input, .field-group select {
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--gray-100);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field-group input:focus, .field-group select:focus { border-color: var(--navy-light); background: white; }
+  .builder-actions { display: flex; gap: 8px; align-items: flex-end; }
+
+  /* Workout Sections */
+  .workout-section { margin-bottom: 16px; border-radius: 10px; overflow: hidden; border: 1px solid var(--gray-200); background: white; }
+  .section-header {
+    background: var(--blue-section);
+    color: white;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-header .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+  .section-count { background: rgba(255,255,255,0.25); border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+  .section-toggle { font-size: 12px; color: rgba(255,255,255,0.8); }
+  .section-body { padding: 0; }
+  .section-body.collapsed { display: none; }
+
+  /* Exercise Rows */
+  .exercise-table { width: 100%; border-collapse: collapse; }
+  .exercise-table th {
+    background: var(--blue-section-light);
+    color: var(--navy);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--gray-300);
+  }
+  .exercise-table td { padding: 8px 10px; border-bottom: 1px solid var(--gray-200); vertical-align: middle; }
+  .exercise-table tr:last-child td { border-bottom: none; }
+  .exercise-table tr:hover td { background: var(--gray-100); }
+  .exercise-table .col-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .exercise-table .col-sub { font-size: 11px; color: var(--gray-500); }
+  .ex-note-inline { font-size: 11px; color: var(--gray-500); font-style: italic; margin-top: 3px; border: none; background: transparent; width: 100%; outline: none; padding: 0; font-family: inherit; cursor: text; }
+  .ex-note-inline:focus { color: var(--text); font-style: normal; }
+  .ex-note-inline::placeholder { color: var(--gray-300); }
+  .ex-input { border: 1px solid var(--gray-300); border-radius: 5px; padding: 5px 7px; font-size: 13px; width: 100%; min-width: 60px; background: white; outline: none; }
+  .ex-input:focus { border-color: var(--navy-light); }
+  .ex-remove { color: var(--gray-300); cursor: pointer; font-size: 18px; line-height: 1; }
+  .ex-remove:hover { color: var(--red); }
+  .add-exercise-row { padding: 10px 16px; border-top: 1px dashed var(--gray-300); }
+  .btn-add-ex { background: none; border: 1px dashed var(--blue-section); color: var(--blue-section); border-radius: 6px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+  .btn-add-ex:hover { background: var(--blue-section-light); border-style: solid; }
+
+  /* ===== EXERCISE PICKER MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 12px;
+    width: 780px;
+    max-width: 95vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-header { background: var(--navy); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .modal-header h3 { font-size: 16px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 24px; cursor: pointer; line-height: 1; }
+  .modal-close:hover { color: white; }
+  .modal-search { padding: 14px 16px; border-bottom: 1px solid var(--gray-200); flex-shrink: 0; }
+  .modal-search input { width: 100%; border: 1px solid var(--gray-300); border-radius: 8px; padding: 10px 14px; font-size: 14px; outline: none; }
+  .modal-search input:focus { border-color: var(--navy-light); }
+  .modal-body { display: flex; flex: 1; overflow: hidden; }
+  .modal-sidebar { width: 180px; border-right: 1px solid var(--gray-200); overflow-y: auto; flex-shrink: 0; padding: 8px; }
+  .modal-sidebar-item { padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--gray-700); transition: all 0.12s; }
+  .modal-sidebar-item:hover { background: var(--blue-section-light); color: var(--navy); }
+  .modal-sidebar-item.active { background: var(--navy); color: white; }
+  .modal-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .modal-ex-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border: 1px solid transparent;
+  }
+  .modal-ex-item:hover { background: var(--blue-section-light); border-color: var(--blue-section); }
+  .modal-ex-name { font-size: 14px; font-weight: 600; color: var(--navy); }
+  .modal-ex-meta { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+  .modal-ex-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .modal-phase-badge { background: var(--phase-badge); color: var(--phase-badge-text); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 700; }
+  .no-results { text-align: center; color: var(--gray-500); padding: 40px 20px; font-size: 14px; }
+
+  /* ===== ASSIGN WORKOUT MODAL ===== */
+  .assign-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+  .assign-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--gray-200); border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+  .assign-item:hover { border-color: var(--navy-light); background: var(--blue-section-light); }
+  .assign-item .ai-name { font-size: 14px; font-weight: 600; color: var(--navy); }
+  .assign-item .ai-meta { font-size: 12px; color: var(--gray-500); }
+
+  /* ===== TOASTS ===== */
+  #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: var(--navy); color: white; padding: 12px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.2); animation: slideIn 0.25s ease; }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* ===== PRINT / PDF ===== */
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body > *, #app-header, #toast-container, .modal-overlay { display: none !important; }
+    #print-area { display: block !important; }
+  }
+  #print-area {
+    display: none;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    font-size: 12px;
+  }
+  .print-header-bar {
+    background: #1a3a6b !important;
+    color: white !important;
+    padding: 14px 18px;
+    border-radius: 4px 4px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .print-header-bar h1 { font-size: 20px; font-weight: 700; }
+  .print-client-info { border: 1px solid #aaa; border-top: none; }
+  .print-info-row { display: flex; border-bottom: 1px solid #aaa; }
+  .print-info-cell { padding: 6px 10px; flex: 1; border-right: 1px solid #aaa; font-size: 12px; }
+  .print-info-cell:last-child { border-right: none; }
+  .print-info-label { font-weight: 700; }
+  .print-table { width: 100%; border-collapse: collapse; margin-top: 0; }
+  .print-table th { background: #1a3a6b !important; color: white !important; padding: 6px 8px; text-align: center; font-size: 11px; font-weight: 700; border: 1px solid #999; }
+  .print-table th.ex-col { text-align: left; }
+  .print-section-row td { background: #4a7bc4 !important; color: white !important; font-weight: 700; font-size: 12px; padding: 5px 8px; border: 1px solid #999; }
+  .print-table td { border: 1px solid #bbb; padding: 5px 8px; font-size: 11px; text-align: center; }
+  .print-table td.ex-col { text-align: left; font-weight: 500; }
+  .print-table tr.empty-row td { height: 22px; }
+  .print-coaching { margin-top: 10px; font-size: 11px; border-top: 2px solid #1a3a6b; padding-top: 6px; }
+  .print-coaching strong { font-size: 12px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<div id="app-header">
+  <div class="logo">NASM <span>OPT</span> Builder</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showView('week')">📅 Week Planner</button>
+    <button class="nav-tab" onclick="showView('library')">📋 Workout Library</button>
+    <button class="nav-tab" id="builder-tab" onclick="showView('builder')" style="display:none">✏️ Edit Workout</button>
+  </div>
+</div>
+
+<div id="app-content">
+
+  <!-- WEEK PLANNER -->
+  <div id="view-week" class="view active">
+    <div class="week-header">
+      <h2>Week Planner</h2>
+      <div class="week-nav">
+        <button class="btn-icon" onclick="changeWeek(-1)">&#8592;</button>
+        <div class="week-label" id="week-label"></div>
+        <button class="btn-icon" onclick="changeWeek(1)">&#8594;</button>
+        <button class="btn btn-secondary btn-sm" onclick="changeWeek(0)" style="margin-left:4px">Today</button>
+      </div>
+    </div>
+    <div class="week-grid" id="week-grid"></div>
+  </div>
+
+  <!-- WORKOUT LIBRARY -->
+  <div id="view-library" class="view">
+    <div class="library-header">
+      <h2>Workout Library</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-secondary btn-sm" onclick="exportData()" title="Copy all workouts as text to transfer to another device">📤 Export</button>
+        <button class="btn btn-secondary btn-sm" onclick="showImport()" title="Paste exported data to load workouts on this device">📥 Import</button>
+        <button class="btn btn-primary" onclick="newWorkout()">+ New Workout</button>
+      </div>
+    </div>
+    <div id="import-panel" style="display:none;background:white;border:1px solid var(--gray-300);border-radius:10px;padding:16px;margin-bottom:20px;">
+      <p style="font-size:13px;color:var(--gray-700);margin-bottom:10px;">Paste exported data below and click Load:</p>
+      <textarea id="import-text" rows="4" style="width:100%;border:1px solid var(--gray-300);border-radius:6px;padding:8px;font-size:12px;font-family:monospace;resize:vertical;outline:none;" placeholder="Paste your exported data here..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-primary btn-sm" onclick="importData()">Load Data</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-panel').style.display='none'">Cancel</button>
+      </div>
+    </div>
+    <div class="workout-grid" id="workout-grid"></div>
+  </div>
+
+  <!-- WORKOUT BUILDER -->
+  <div id="view-builder" class="view">
+    <div class="builder-topbar">
+      <div class="field-group" style="flex:2">
+        <label>Client Name</label>
+        <input type="text" id="b-client" placeholder="e.g. John Smith" oninput="markDirty()">
+      </div>
+      <div class="field-group" style="flex:2">
+        <label>Goal</label>
+        <select id="b-goal" onchange="markDirty(); updateGoalContext()">
+          <option value="">Select Goal...</option>
+          <option value="Fat Loss">Fat Loss</option>
+          <option value="Muscle Gain">Muscle Gain</option>
+          <option value="Sport Performance">Sport Performance</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>OPT Phase</label>
+        <select id="b-phase" onchange="markDirty(); updatePhaseContext()">
+          <option value="1">Phase 1 – Stabilization Endurance</option>
+          <option value="2">Phase 2 – Strength Endurance</option>
+          <option value="3">Phase 3 – Muscular Development</option>
+          <option value="4">Phase 4 – Maximal Strength</option>
+          <option value="5">Phase 5 – Power</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Date</label>
+        <input type="date" id="b-date" oninput="markDirty()">
+      </div>
+      <div class="field-group" style="flex:2">
+        <label>Setting / Equipment</label>
+        <select id="b-setting" onchange="markDirty(); updateSettingContext()">
+          <option value="Full Gym">🏋️ Full Gym</option>
+          <option value="Apartment (DB + Pull-up Bar)">🏠 Apartment (DB + Pull-up Bar)</option>
+          <option value="Home (DB + Pull-up Bar)">🏡 Home (DB + Pull-up Bar)</option>
+          <option value="Bodyweight Only">🤸 Bodyweight Only</option>
+          <option value="Outdoors">🌳 Outdoors</option>
+        </select>
+      </div>
+      <div class="builder-actions">
+        <button class="btn btn-success" onclick="saveWorkout()">💾 Save</button>
+        <button class="btn btn-outline" onclick="printWorkout()">🖨 Export PDF</button>
+        <button class="btn btn-secondary" onclick="showView('library')">← Library</button>
+      </div>
+    </div>
+
+    <div id="phase-context" style="background:#e8f0fe;border:1px solid #a0b4e8;border-radius:8px;padding:10px 16px;margin-bottom:10px;font-size:13px;color:#1a3a6b;"></div>
+    <div id="setting-context" style="background:#fff4e6;border:1px solid #f0c088;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:13px;color:#8a4b00;"></div>
+
+    <div id="workout-sections"></div>
+
+    <div style="background:white;border-radius:10px;border:1px solid var(--gray-200);padding:16px;margin-top:16px;">
+      <label style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px;">Coaching Tips</label>
+      <textarea id="b-coaching" rows="3" style="width:100%;border:1px solid var(--gray-300);border-radius:6px;padding:8px;font-size:13px;resize:vertical;outline:none;font-family:inherit;" placeholder="Session notes, cues, reminders..." oninput="markDirty()"></textarea>
+    </div>
+  </div>
+
+</div>
+
+<!-- EXERCISE PICKER MODAL -->
+<div class="modal-overlay" id="exercise-picker-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="picker-title">Add Exercise</h3>
+      <button class="modal-close" onclick="closePicker()">&#x2715;</button>
+    </div>
+    <div class="modal-search">
+      <input type="text" id="picker-search" placeholder="Search exercises..." oninput="filterExercises()" autocomplete="off">
+    </div>
+    <div class="modal-body">
+      <div class="modal-sidebar" id="picker-sidebar"></div>
+      <div class="modal-list" id="picker-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN WORKOUT MODAL -->
+<div class="modal-overlay" id="assign-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3 id="assign-title">Assign Workout</h3>
+      <button class="modal-close" onclick="closeAssign()">&#x2715;</button>
+    </div>
+    <div class="assign-list" id="assign-list"></div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div id="print-area"></div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<script>
+const PHASE_DEFAULTS = {
+  1: {
+    warmup:           { sets:'1-3', reps:'1',     tempo:'Hold 30s',    rest:'0'       },
+    activation:       { sets:'1-3', reps:'12-20', tempo:'4-2-1-1',     rest:'0-90s'   },
+    skilldevelopment: { sets:'1-3', reps:'5-8',   tempo:'Hold 3-5s',   rest:'0-90s'   },
+    resistance:       { sets:'1-3', reps:'12-20', tempo:'4-2-1-1',     rest:'0-90s'   },
+    clientschoice:    { sets:'1-3', reps:'12-20', tempo:'',            rest:''         },
+    cooldown:         { sets:'1-3', reps:'1',     tempo:'Hold 30s',    rest:'0'       },
+  },
+  2: {
+    warmup:           { sets:'1-3', reps:'5-10',  tempo:'30s / 1-2s',  rest:'0'       },
+    activation:       { sets:'2-4', reps:'8-12',  tempo:'2-0-2-0',     rest:'0-60s'   },
+    skilldevelopment: { sets:'2-4', reps:'8-12',  tempo:'Repetitive',  rest:'0-60s'   },
+    resistance:       { sets:'2-4', reps:'8-12',  tempo:'2-0-2-0',     rest:'0-60s'   },
+    clientschoice:    { sets:'2-4', reps:'8-12',  tempo:'',            rest:''         },
+    cooldown:         { sets:'1-3', reps:'1',     tempo:'Hold 30s',    rest:'0'       },
+  },
+  3: {
+    warmup:           { sets:'1-3', reps:'5-10',  tempo:'30s / 1-2s',  rest:'0'       },
+    activation:       { sets:'2-4', reps:'8-12',  tempo:'2-0-2-0',     rest:'0-60s'   },
+    skilldevelopment: { sets:'2-4', reps:'8-12',  tempo:'Repetitive',  rest:'0-60s'   },
+    resistance:       { sets:'3-6', reps:'6-12',  tempo:'2-0-2-0',     rest:'0-60s'   },
+    clientschoice:    { sets:'3-6', reps:'6-12',  tempo:'',            rest:''         },
+    cooldown:         { sets:'1-3', reps:'1',     tempo:'Hold 30s',    rest:'0'       },
+  },
+  4: {
+    warmup:           { sets:'1-3', reps:'5-10',  tempo:'30s / 1-2s',  rest:'0'       },
+    activation:       { sets:'2-4', reps:'8-12',  tempo:'2-0-2-0',     rest:'0-60s'   },
+    skilldevelopment: { sets:'3-5', reps:'8-12',  tempo:'Explosive',   rest:'60-120s' },
+    resistance:       { sets:'4-6', reps:'1-5',   tempo:'X-X-X-X',     rest:'3-5 min' },
+    clientschoice:    { sets:'4-6', reps:'1-5',   tempo:'',            rest:''         },
+    cooldown:         { sets:'1-3', reps:'1',     tempo:'Hold 30s',    rest:'0'       },
+  },
+  5: {
+    warmup:           { sets:'1-3', reps:'10-15', tempo:'Controlled',  rest:'0'       },
+    activation:       { sets:'1-3', reps:'8-12',  tempo:'Explosive',   rest:'0-60s'   },
+    skilldevelopment: { sets:'3-5', reps:'8-12',  tempo:'Explosive',   rest:'60-120s' },
+    resistance:       { sets:'3-5', reps:'1-10',  tempo:'X-X-X-X',     rest:'3-5 min' },
+    clientschoice:    { sets:'3-5', reps:'8-10',  tempo:'',            rest:''         },
+    cooldown:         { sets:'1-3', reps:'1',     tempo:'Hold 30s',    rest:'0'       },
+  }
+};
+
+const PHASE_CONTEXT = {
+  1: '📌 Phase 1 Stabilization Endurance — Warm-Up: SMR + static stretching. Activation: isometric core (plank, bridge, bird-dog) + single-leg balance. Plyometrics: land and hold 3-5s. Resistance: 1-3 sets, 12-20 reps, 4-2-1-1 tempo, 0-90s rest.',
+  2: '📌 Phase 2 Strength Endurance — Warm-Up: SMR + active stretching. Activation: dynamic core + balance. Plyometrics: repetitive. Resistance uses SUPERSETS (strength exercise immediately followed by stability exercise). 2-4 sets, 8-12 reps.',
+  3: '📌 Phase 3 Muscular Development — Warm-Up: SMR + active stretching. High volume for hypertrophy. 3-6 sets, 6-12 reps, 2-0-2-0 tempo, 0-60s rest. 2-4 exercises per body part.',
+  4: '📌 Phase 4 Maximal Strength — SMR + active stretching. Heavy loads, low reps. 4-6 sets, 1-5 reps, explosive tempo (X-X-X-X), 3-5 min rest. Advanced clients only.',
+  5: '📌 Phase 5 Power — SMR + dynamic stretching. Supersets: heavy strength (1-5 reps) + explosive power (8-10 reps). 3-5 sets. Medicine ball and plyometric power exercises.',
+};
+
+const GOAL_CONTEXT = {
+  'Fat Loss': {
+    icon: '🔥',
+    progression: 'Phase 1 → 2 → 3',
+    summary: 'Circuit/mini-circuit format. Cardio in BOTH warm-up AND cool-down (5 min brisk walk or jog). SMR priority: Calves, Adductors, Lats. Resistance: compound squat/hinge/push/pull/press patterns. Client\'s Choice: active cardio (jump rope, elliptical, bike).',
+  },
+  'Muscle Gain': {
+    icon: '💪',
+    progression: 'Phase 1 → 2 → 3 → 4',
+    summary: 'No warm-up cardio — dynamic stretching instead. SMR priority: Calves, TFL, Thoracic Spine. Resistance: body-part splits, high volume. Phase 4 emphasis: 5 sets × 5 reps, explosive tempo, 3-5 min rest. Focus on progressive overload each week.',
+  },
+  'Sport Performance': {
+    icon: '⚡',
+    progression: 'Phase 1 → 2 → Phase 5 (skip 3 & 4)',
+    summary: 'SAQ drills included from Phase 1 onward — always. Dynamic stretching always included. SMR priority: Calves, Adductors, TFL, Lats. Resistance: unilateral and single-leg emphasis throughout. Phase 5: complex training (heavy strength supersetted with explosive power, 3-5 sets).',
+  },
+};
+
+// Equipment settings. equip:'ALL' = everything available. allowImpact:false = no jumping/running (apartment).
+const SETTINGS = {
+  'Full Gym':                     { icon:'🏋️', equip:'ALL',                                                              allowImpact:true,  note:'Everything available. No restrictions.' },
+  'Apartment (DB + Pull-up Bar)': { icon:'🏠', equip:['foam_roller','dumbbell','pullup_bar','bands','stability_ball','box'], allowImpact:false, note:'Dumbbells, pull-up bar, bands. NO jumping or running — quiet for downstairs neighbors.' },
+  'Home (DB + Pull-up Bar)':      { icon:'🏡', equip:['foam_roller','dumbbell','pullup_bar','bands','stability_ball','box','kettlebell','jump_rope'], allowImpact:true, note:'Dumbbells, pull-up bar, bands. Impact OK (house, not apartment).' },
+  'Bodyweight Only':              { icon:'🤸', equip:['foam_roller'],                                                     allowImpact:true,  note:'No equipment except a foam roller. Bodyweight movements only.' },
+  'Outdoors':                     { icon:'🌳', equip:['cone','agility_ladder','bands','box'],                             allowImpact:true,  note:'Bodyweight plus anything portable you bring (cones, ladder, bands).' },
+};
+const EQUIP_LABELS = {
+  machine:'a machine', cable:'a cable column', barbell:'a barbell', dumbbell:'dumbbells',
+  bench:'a bench', pullup_bar:'a pull-up bar', kettlebell:'a kettlebell', med_ball:'a med ball',
+  stability_ball:'a stability ball', box:'a box/step', cone:'cones', agility_ladder:'an agility ladder',
+  bands:'resistance bands', cardio_machine:'a cardio machine', battle_ropes:'battle ropes',
+  jump_rope:'a jump rope', ez_bar:'an EZ bar', foam_roller:'a foam roller',
+};
+// Returns {ok, reason} for whether an exercise can be done under a given setting name.
+function checkExerciseSetting(ex, settingName) {
+  const cfg = SETTINGS[settingName] || SETTINGS['Full Gym'];
+  if (cfg.equip !== 'ALL') {
+    const missing = (ex.equipment || []).filter(e => !cfg.equip.includes(e));
+    if (missing.length) return { ok:false, reason:'Needs ' + missing.map(m => EQUIP_LABELS[m] || m).join(' + ') };
+  }
+  if (ex.impact === 'high' && !cfg.allowImpact) return { ok:false, reason:'No jumping/impact here' };
+  return { ok:true, reason:'' };
+}
+function currentSetting() {
+  const el = document.getElementById('b-setting');
+  return (el && el.value) || (getWorkout() && getWorkout().setting) || 'Full Gym';
+}
+
+const EXERCISE_LIBRARY = [
+  // WARM-UP: SMR
+  { id:'smr-calves',      name:'SMR: Calves',               section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Gastrocnemius, Soleus',        notes:'Hold tender areas 30s each' },
+  { id:'smr-peroneals',   name:'SMR: Peroneals',            section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Peroneals',                    notes:'Side plank position, roll to ankle' },
+  { id:'smr-hamstrings',  name:'SMR: Hamstrings',           section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Hamstrings',                   notes:'Seated, roll posterior thigh' },
+  { id:'smr-quads',       name:'SMR: Quadriceps',           section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Quadriceps',                   notes:'Plank position, bilateral or unilateral' },
+  { id:'smr-adductors',   name:'SMR: Adductors',            section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Adductors',                    notes:'Foam roller perpendicular to inner thigh' },
+  { id:'smr-it-band',     name:'SMR: IT Band / TFL',        section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'IT Band, TFL',                 notes:'Side-lying, roll lateral thigh' },
+  { id:'smr-hip-flex',    name:'SMR: Hip Flexors',          section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Hip Flexors',                  notes:'Half-kneeling position' },
+  { id:'smr-piriformis',  name:'SMR: Piriformis',           section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Piriformis, Glutes',           notes:'Seated on roller, figure-4 position' },
+  { id:'smr-lats',        name:'SMR: Lats',                 section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Latissimus Dorsi',             notes:'Side-lying, arm overhead' },
+  { id:'smr-thoracic',    name:'SMR: Thoracic Spine',       section:'warmup', sub:'SMR / Foam Rolling',    phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Thoracic Spine, Rhomboids',    notes:'Hands behind head, roll upper back' },
+  // WARM-UP: Static Stretching (Phase 1)
+  { id:'ss-gastro',       name:'Static Stretch: Gastrocnemius', section:'warmup', sub:'Static Stretching', phases:[1], equipment:[], impact:'low',         muscles:'Gastrocnemius',               notes:'Hold 30s, straight knee' },
+  { id:'ss-soleus',       name:'Static Stretch: Soleus',        section:'warmup', sub:'Static Stretching', phases:[1], equipment:[], impact:'low',         muscles:'Soleus',                      notes:'Hold 30s, bent knee' },
+  { id:'ss-hip-flex',     name:'Static Stretch: Hip Flexor',    section:'warmup', sub:'Static Stretching', phases:[1], equipment:[], impact:'low',         muscles:'Hip Flexors, Psoas',          notes:'Half-kneeling, hold 30s' },
+  { id:'ss-adductor',     name:'Static Stretch: Adductor',      section:'warmup', sub:'Static Stretching', phases:[1], equipment:[], impact:'low',         muscles:'Adductors',                   notes:'Wide-stance, hold 30s' },
+  { id:'ss-hamstring',    name:'Static Stretch: Hamstring',     section:'warmup', sub:'Static Stretching', phases:[1], equipment:[], impact:'low',         muscles:'Hamstrings',                  notes:'Seated or supine, hold 30s' },
+  { id:'ss-piriformis',   name:'Static Stretch: Piriformis',    section:'warmup', sub:'Static Stretching', phases:[1], equipment:[], impact:'low',         muscles:'Piriformis, Glutes',          notes:'Supine figure-4, hold 30s' },
+  { id:'ss-lat',          name:'Static Stretch: Lat',           section:'warmup', sub:'Static Stretching', phases:[1], equipment:[], impact:'low',         muscles:'Latissimus Dorsi',            notes:'Doorway or cable, hold 30s' },
+  { id:'ss-thoracic',     name:'Static Stretch: Thoracic Rotation', section:'warmup', sub:'Static Stretching', phases:[1], equipment:[], impact:'low',     muscles:'Thoracic Spine',              notes:'Seated rotation, hold 30s' },
+  { id:'ss-pec',          name:'Static Stretch: Pectorals',     section:'warmup', sub:'Static Stretching', phases:[1], equipment:[], impact:'low',         muscles:'Pectorals',                   notes:'Doorway stretch, hold 30s' },
+  // WARM-UP: Active Stretching (Phases 2-5)
+  { id:'as-hip-flex',     name:'Active Stretch: Hip Flexor',    section:'warmup', sub:'Active Stretching', phases:[2,3,4,5], equipment:[], impact:'low',   muscles:'Hip Flexors',                 notes:'5-10 reps, hold 1-2s at end range' },
+  { id:'as-hamstring',    name:'Active Stretch: Hamstring',     section:'warmup', sub:'Active Stretching', phases:[2,3,4,5], equipment:[], impact:'low',   muscles:'Hamstrings',                  notes:'5-10 reps, supine leg raise' },
+  { id:'as-adductor',     name:'Active Stretch: Adductor',      section:'warmup', sub:'Active Stretching', phases:[2,3,4,5], equipment:[], impact:'low',   muscles:'Adductors',                   notes:'5-10 reps, lateral lunge' },
+  { id:'as-thoracic',     name:'Active Stretch: Thoracic',      section:'warmup', sub:'Active Stretching', phases:[2,3,4,5], equipment:[], impact:'low',   muscles:'Thoracic Spine',              notes:'5-10 reps, hold 1-2s' },
+  { id:'as-lat',          name:'Active Stretch: Lat',           section:'warmup', sub:'Active Stretching', phases:[2,3,4,5], equipment:[], impact:'low',   muscles:'Latissimus Dorsi',            notes:'5-10 reps, hold 1-2s' },
+  // WARM-UP: Dynamic (all phases)
+  { id:'dyn-leg-front',   name:'Dynamic: Leg Swings (Frontal)', section:'warmup', sub:'Dynamic Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Hip Flexors, Hamstrings',    notes:'10-15 reps each leg' },
+  { id:'dyn-leg-lat',     name:'Dynamic: Leg Swings (Lateral)', section:'warmup', sub:'Dynamic Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Adductors, Abductors',       notes:'10-15 reps each leg' },
+  { id:'dyn-hip-circles', name:'Dynamic: Hip Circles',          section:'warmup', sub:'Dynamic Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Hips',                       notes:'10 each direction' },
+  { id:'dyn-arm-circles', name:'Dynamic: Arm Circles',          section:'warmup', sub:'Dynamic Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Shoulders',                  notes:'10 each direction' },
+  { id:'dyn-walk-lunge',  name:'Dynamic: Walking Lunge',        section:'warmup', sub:'Dynamic Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Quads, Hip Flexors, Glutes', notes:'10-15 reps each leg' },
+  { id:'dyn-high-knees',  name:'Dynamic: High Knees',           section:'warmup', sub:'Dynamic Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Hip Flexors, Core',          notes:'30 seconds' },
+  { id:'dyn-butt-kicks',  name:'Dynamic: Butt Kicks',           section:'warmup', sub:'Dynamic Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Hamstrings, Quads',          notes:'30 seconds' },
+  { id:'dyn-inchworm',    name:'Dynamic: Inchworm',             section:'warmup', sub:'Dynamic Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Hamstrings, Shoulders, Core', notes:'5-8 reps' },
+  { id:'dyn-world',       name:'Dynamic: World\'s Greatest Stretch', section:'warmup', sub:'Dynamic Stretching', phases:[2,3,4,5], equipment:[], impact:'low', muscles:'Full Body',              notes:'5-8 reps each side' },
+  // ACTIVATION: Core Phase 1
+  { id:'core-draw-in',    name:'Drawing-In Maneuver',           section:'activation', sub:'Core – Phase 1',    phases:[1], equipment:[], impact:'low',       muscles:'Transverse Abdominis',     notes:'Navel to spine, hold 20-30s' },
+  { id:'core-plank',      name:'Plank',                         section:'activation', sub:'Core – Phase 1',    phases:[1,2], equipment:[], impact:'low',     muscles:'Core, Transverse Abdominis', notes:'Hold, neutral spine' },
+  { id:'core-side-plank', name:'Side Plank',                    section:'activation', sub:'Core – Phase 1',    phases:[1,2], equipment:[], impact:'low',     muscles:'Obliques, Core',           notes:'Hold 20-30s each side' },
+  { id:'core-bridge',     name:'Glute Bridge',                  section:'activation', sub:'Core – Phase 1',    phases:[1,2], equipment:[], impact:'low',     muscles:'Glutes, Hamstrings, Core', notes:'Isometric hold or slow reps' },
+  { id:'core-bird-dog',   name:'Bird-Dog',                      section:'activation', sub:'Core – Phase 1',    phases:[1,2], equipment:[], impact:'low',     muscles:'Erector Spinae, Glutes',   notes:'Opposite arm/leg, hold 2-3s' },
+  { id:'core-dead-bug',   name:'Dead Bug',                      section:'activation', sub:'Core – Phase 1',    phases:[1,2], equipment:[], impact:'low',     muscles:'Core, Transverse Abdominis', notes:'Supine, opposite arm/leg lower' },
+  { id:'core-cobra',      name:'Cobra',                         section:'activation', sub:'Core – Phase 1',    phases:[1], equipment:[], impact:'low',       muscles:'Erector Spinae',           notes:'Prone press-up, hold 2-3s' },
+  // ACTIVATION: Core Phases 2-5
+  { id:'core-crunch',     name:'Floor Crunch',                  section:'activation', sub:'Core – Phases 2-5', phases:[2,3,4,5], equipment:[], impact:'low', muscles:'Rectus Abdominis',          notes:'Full range of motion' },
+  { id:'core-ball-crunch',name:'Ball Crunch',                   section:'activation', sub:'Core – Phases 2-5', phases:[2,3,4,5], equipment:['stability_ball'], impact:'low', muscles:'Rectus Abdominis',          notes:'On stability ball' },
+  { id:'core-back-ext',   name:'Back Extension',                section:'activation', sub:'Core – Phases 2-5', phases:[2,3,4,5], equipment:['bench'], impact:'low', muscles:'Erector Spinae, Glutes',    notes:'Hyperextension bench' },
+  { id:'core-rev-crunch', name:'Reverse Crunch',                section:'activation', sub:'Core – Phases 2-5', phases:[2,3,4,5], equipment:[], impact:'low', muscles:'Lower Abs, Hip Flexors',    notes:'Controlled lower, full crunch top' },
+  { id:'core-knee-up',    name:'Knee-Up',                       section:'activation', sub:'Core – Phases 2-5', phases:[2,3,4,5], equipment:[], impact:'low', muscles:'Lower Abs, Hip Flexors',    notes:'Hanging or bench, knees to chest' },
+  { id:'core-cable-rot',  name:'Cable Rotation',                section:'activation', sub:'Core – Phases 2-5', phases:[2,3,4,5], equipment:['cable'], impact:'low', muscles:'Obliques, Core',            notes:'Stand perpendicular to cable' },
+  { id:'core-cable-lift', name:'Cable Lift',                    section:'activation', sub:'Core – Phases 2-5', phases:[2,3,4,5], equipment:['cable'], impact:'low', muscles:'Obliques, Core',            notes:'Low to high diagonal' },
+  { id:'core-cable-chop', name:'Cable Chop',                    section:'activation', sub:'Core – Phases 2-5', phases:[2,3,4,5], equipment:['cable'], impact:'low', muscles:'Obliques, Core',            notes:'High to low diagonal' },
+  { id:'core-rus-twist',  name:'Russian Twist',                 section:'activation', sub:'Core – Phases 2-5', phases:[2,3,4,5], equipment:[], impact:'low', muscles:'Obliques',                  notes:'Seated, bodyweight or weighted' },
+  { id:'core-mb-rot',     name:'Med Ball Rotation Chest Pass',  section:'activation', sub:'Core – Phase 5',    phases:[5], equipment:['med_ball'], impact:'high',       muscles:'Obliques, Core',            notes:'Explosive rotation, toss into wall' },
+  { id:'core-mb-chop',    name:'Med Ball Woodchop Throw',       section:'activation', sub:'Core – Phase 5',    phases:[5], equipment:['med_ball'], impact:'high',       muscles:'Core, Shoulders',           notes:'Explosive high-to-low or low-to-high' },
+  { id:'core-mb-oh',      name:'Med Ball Overhead Throw',       section:'activation', sub:'Core – Phase 5',    phases:[5], equipment:['med_ball'], impact:'high',       muscles:'Core, Shoulders, Lats',     notes:'Explosive overhead slam or throw' },
+  // ACTIVATION: Balance Phase 1
+  { id:'bal-slb',         name:'Single-Leg Balance',            section:'activation', sub:'Balance – Phase 1', phases:[1], equipment:[], impact:'low',       muscles:'Ankles, Knees, Hips',       notes:'30-60s, minimal joint motion' },
+  { id:'bal-slb-reach',   name:'Single-Leg Balance Reach (Multiplanar)', section:'activation', sub:'Balance – Phase 1', phases:[1], equipment:[], impact:'low', muscles:'Glutes, Hips, Core',     notes:'Reach forward/lateral/rotational' },
+  { id:'bal-hip-abd',     name:'Single-Leg Hip Abduction',      section:'activation', sub:'Balance – Phase 1', phases:[1], equipment:[], impact:'low',       muscles:'Glute Med, Abductors',      notes:'Standing, slow controlled abduction' },
+  { id:'bal-tandem',      name:'Tandem Stance Balance',         section:'activation', sub:'Balance – Phase 1', phases:[1], equipment:[], impact:'low',       muscles:'Ankles, Core',              notes:'Heel-to-toe, progress to eyes closed' },
+  // ACTIVATION: Balance Phases 2-5
+  { id:'bal-sl-squat',    name:'Single-Leg Squat',              section:'activation', sub:'Balance – Phases 2-5', phases:[2,3,4,5], equipment:[], impact:'low', muscles:'Quads, Glutes, Core',    notes:'Full ROM, control eccentric' },
+  { id:'bal-sl-squat-td', name:'Single-Leg Squat Touchdown',    section:'activation', sub:'Balance – Phases 2-5', phases:[2,3,4,5], equipment:[], impact:'low', muscles:'Quads, Glutes',          notes:'Reach toward floor at bottom' },
+  { id:'bal-sl-rdl',      name:'Single-Leg Romanian Deadlift',  section:'activation', sub:'Balance – Phases 2-5', phases:[2,3,4,5], equipment:[], impact:'low', muscles:'Hamstrings, Glutes',      notes:'Hip hinge, neutral spine' },
+  { id:'bal-step-bal',    name:'Multiplanar Step-Up to Balance', section:'activation', sub:'Balance – Phases 2-5', phases:[2,3,4,5], equipment:['box'], impact:'low', muscles:'Quads, Glutes, Core',    notes:'Hold single-leg balance 2-3s at top' },
+  { id:'bal-lunge-bal',   name:'Multiplanar Lunge to Balance',  section:'activation', sub:'Balance – Phases 2-5', phases:[2,3,4,5], equipment:[], impact:'low', muscles:'Quads, Glutes, Core',     notes:'Forward/lateral/reverse, return to balance' },
+  { id:'bal-hop-stab',    name:'Multiplanar Hop with Stabilization', section:'activation', sub:'Balance – Phase 5', phases:[5], equipment:[], impact:'high',   muscles:'Full Lower Body',           notes:'Hop and hold landing 3-5s each direction' },
+  // SKILL DEVELOPMENT: Plyometrics Phase 1
+  { id:'plyo-squat-hold', name:'Squat Jump (Stabilization)',    section:'skilldevelopment', sub:'Plyometrics – Phase 1',    phases:[1], equipment:[], impact:'high',       muscles:'Quads, Glutes, Core', notes:'Land and HOLD 3-5s, correct posture before next rep' },
+  { id:'plyo-box-hold',   name:'Box Jump (Stabilization)',      section:'skilldevelopment', sub:'Plyometrics – Phase 1',    phases:[1], equipment:['box'], impact:'high',       muscles:'Quads, Glutes',       notes:'Jump onto box, HOLD 3-5s on landing' },
+  { id:'plyo-lat-hold',   name:'Lateral Jump (Stabilization)',  section:'skilldevelopment', sub:'Plyometrics – Phase 1',    phases:[1], equipment:[], impact:'high',       muscles:'Glutes, Abductors',   notes:'Jump laterally, HOLD 3-5s' },
+  { id:'plyo-tuck-hold',  name:'Tuck Jump (Stabilization)',     section:'skilldevelopment', sub:'Plyometrics – Phase 1',    phases:[1], equipment:[], impact:'high',       muscles:'Quads, Core',         notes:'HOLD landing 3-5s' },
+  { id:'plyo-tempo-squat',name:'Tempo Squat (Low-Impact Sub)',  section:'skilldevelopment', sub:'Plyometrics – Phase 1',    phases:[1], equipment:[], impact:'low',        muscles:'Quads, Glutes, Core', notes:'Apartment-friendly plyo substitute — fast/explosive concentric WITHOUT leaving the floor, 3-5s pause at the bottom. No jump = no noise for downstairs neighbors.' },
+  { id:'plyo-tempo-stepup',name:'Tempo Step-Up (Low-Impact Sub)',section:'skilldevelopment', sub:'Plyometrics – Phase 1',   phases:[1], equipment:['box'], impact:'low',   muscles:'Quads, Glutes',       notes:'Apartment-friendly plyo substitute — drive up explosively onto a sturdy step, control the way down. No impact.' },
+  // SKILL DEVELOPMENT: Plyometrics Phases 2-4
+  { id:'plyo-squat-rep',  name:'Squat Jump (Repetitive)',       section:'skilldevelopment', sub:'Plyometrics – Phases 2-4', phases:[2,3,4], equipment:[], impact:'high',   muscles:'Quads, Glutes, Core', notes:'Continuous, minimal ground contact' },
+  { id:'plyo-tuck-rep',   name:'Tuck Jump (Repetitive)',        section:'skilldevelopment', sub:'Plyometrics – Phases 2-4', phases:[2,3,4], equipment:[], impact:'high',   muscles:'Quads, Core',         notes:'Bring knees to chest each jump' },
+  { id:'plyo-butt-kick',  name:'Jump with Butt Kicks',          section:'skilldevelopment', sub:'Plyometrics – Phases 2-4', phases:[2,3,4], equipment:[], impact:'high',   muscles:'Hamstrings, Quads',   notes:'Heel-to-glute kicks while jumping' },
+  { id:'plyo-pwr-step',   name:'Power Step-Up',                 section:'skilldevelopment', sub:'Plyometrics – Phases 2-4', phases:[2,3,4], equipment:['box'], impact:'high',   muscles:'Quads, Glutes',       notes:'Explosive step-up, drive knee up' },
+  { id:'plyo-lat-cone',   name:'Lateral Cone Hops',             section:'skilldevelopment', sub:'Plyometrics – Phases 2-4', phases:[2,3,4], equipment:['cone'], impact:'high',   muscles:'Glutes, Abductors',   notes:'Lateral hops over cones' },
+  { id:'plyo-bounding',   name:'Bounding',                      section:'skilldevelopment', sub:'Plyometrics – Phases 2-4', phases:[2,3,4], equipment:[], impact:'high',   muscles:'Full Lower Body',     notes:'Exaggerated running stride' },
+  // SKILL DEVELOPMENT: Plyometrics Phase 5
+  { id:'plyo-ice-skate',  name:'Ice Skaters',                   section:'skilldevelopment', sub:'Plyometrics – Phase 5',    phases:[5], equipment:[], impact:'high',       muscles:'Glutes, Abductors',   notes:'Explosive lateral bounds, one leg' },
+  { id:'plyo-depth-jump', name:'Depth Jump',                    section:'skilldevelopment', sub:'Plyometrics – Phase 5',    phases:[5], equipment:['box'], impact:'high',       muscles:'Quads, Glutes, Calves', notes:'Step off box, immediate explosive jump' },
+  { id:'plyo-sl-pwr',     name:'Single-Leg Power Step-Up',      section:'skilldevelopment', sub:'Plyometrics – Phase 5',    phases:[5], equipment:['box'], impact:'high',       muscles:'Quads, Glutes',       notes:'Explosive single-leg drive onto box' },
+  // SKILL DEVELOPMENT: SAQ
+  { id:'saq-t-drill',     name:'T-Drill',                       section:'skilldevelopment', sub:'SAQ',                      phases:[2,3,4,5], equipment:['cone'], impact:'high', muscles:'Full Body, Agility',   notes:'Sprint, shuffle, backpedal' },
+  { id:'saq-5-10-5',      name:'5-10-5 Drill (Pro Agility)',    section:'skilldevelopment', sub:'SAQ',                      phases:[2,3,4,5], equipment:['cone'], impact:'high', muscles:'Change of Direction',  notes:'5yd sprint, 10yd back, 5yd return' },
+  { id:'saq-ladder',      name:'Agility Ladder Drills',         section:'skilldevelopment', sub:'SAQ',                      phases:[2,3,4,5], equipment:['agility_ladder'], impact:'high', muscles:'Footwork, Coordination', notes:'In/out, lateral, Ickey shuffle' },
+  { id:'saq-cone-weave',  name:'Cone Weave Drill',              section:'skilldevelopment', sub:'SAQ',                      phases:[2,3,4,5], equipment:['cone'], impact:'high', muscles:'Agility',              notes:'Weave through cone course' },
+  { id:'saq-dot-drill',   name:'Dot Drill',                     section:'skilldevelopment', sub:'SAQ',                      phases:[3,4,5], equipment:[], impact:'high',   muscles:'Ankles, Quads, Agility', notes:'5-dot pattern, both feet and alternating' },
+  // RESISTANCE: Chest
+  { id:'res-bench',       name:'Barbell Bench Press',           section:'resistance', sub:'Chest', phases:[2,3,4,5], equipment:['barbell','bench'], impact:'low', muscles:'Pectorals, Anterior Deltoid, Triceps', notes:'Flat bench, controlled descent' },
+  { id:'res-inc-db',      name:'Incline Dumbbell Press',        section:'resistance', sub:'Chest', phases:[2,3,4,5], equipment:['dumbbell','bench'], impact:'low', muscles:'Upper Pectorals, Anterior Deltoid',    notes:'30-45° incline' },
+  { id:'res-machine-chest',name:'Machine Chest Press',          section:'resistance', sub:'Chest', phases:[1,2,3], equipment:['machine'], impact:'low',   muscles:'Pectorals, Triceps',                  notes:'Stable base' },
+  { id:'res-db-fly',      name:'Dumbbell Fly',                  section:'resistance', sub:'Chest', phases:[2,3], equipment:['dumbbell','bench'], impact:'low',     muscles:'Pectorals',                           notes:'Slight elbow bend, full stretch' },
+  { id:'res-cable-fly',   name:'Cable Fly',                     section:'resistance', sub:'Chest', phases:[2,3,4], equipment:['cable'], impact:'low',   muscles:'Pectorals',                           notes:'Constant tension through full ROM' },
+  { id:'res-pushup',      name:'Push-Up',                       section:'resistance', sub:'Chest', phases:[1,2,3], equipment:[], impact:'low',   muscles:'Pectorals, Core, Triceps',            notes:'Stabilization focus' },
+  { id:'res-sl-press',    name:'Single-Leg Cable Press',        section:'resistance', sub:'Chest', phases:[2,3], equipment:['cable'], impact:'low',     muscles:'Pectorals, Core Stability',           notes:'Phase 2 stability pair. Stand on one leg' },
+  { id:'res-mb-chest',    name:'Med Ball Chest Pass',           section:'resistance', sub:'Chest', phases:[5], equipment:['med_ball'], impact:'high',       muscles:'Pectorals, Triceps (Power)',          notes:'Phase 5 power exercise. Explosive throw' },
+  // RESISTANCE: Back
+  { id:'res-lat-pull',    name:'Machine Lat Pulldown',          section:'resistance', sub:'Back', phases:[1,2,3], equipment:['machine'], impact:'low',   muscles:'Latissimus Dorsi, Biceps',             notes:'Seated, pull to chin level' },
+  { id:'res-stand-lat',   name:'Standing Lat Pulldown (Cable)', section:'resistance', sub:'Back', phases:[2,3,4], equipment:['cable'], impact:'low',   muscles:'Latissimus Dorsi, Core',               notes:'Phase 2 stability pair. Stand bilateral' },
+  { id:'res-pullup',      name:'Pull-Up / Chin-Up',             section:'resistance', sub:'Back', phases:[2,3,4,5], equipment:['pullup_bar'], impact:'low', muscles:'Latissimus Dorsi, Biceps',             notes:'Full ROM, no swinging' },
+  { id:'res-cable-row',   name:'Machine Cable Row',             section:'resistance', sub:'Back', phases:[1,2,3], equipment:['cable'], impact:'low',   muscles:'Rhomboids, Lats, Rear Deltoid',        notes:'Seated, squeeze at end' },
+  { id:'res-stand-row',   name:'Standing Cable Row',            section:'resistance', sub:'Back', phases:[2,3,4], equipment:['cable'], impact:'low',   muscles:'Rhomboids, Lats, Core',                notes:'Phase 2 stability pair' },
+  { id:'res-db-row',      name:'Dumbbell Row',                  section:'resistance', sub:'Back', phases:[2,3,4], equipment:['dumbbell','bench'], impact:'low',   muscles:'Rhomboids, Lats',                      notes:'Single-arm, knee on bench' },
+  { id:'res-barbell-row', name:'Barbell Row',                   section:'resistance', sub:'Back', phases:[3,4,5], equipment:['barbell'], impact:'low',   muscles:'Lats, Rhomboids, Erectors',            notes:'Hinge at hips, pull to lower chest' },
+  { id:'res-face-pull',   name:'Face Pull',                     section:'resistance', sub:'Back', phases:[1,2,3,4], equipment:['cable'], impact:'low', muscles:'Rear Deltoid, Rotator Cuff',           notes:'Cable, rope attachment, pull to forehead' },
+  // RESISTANCE: Shoulders
+  { id:'res-oh-press',    name:'Overhead Barbell Press',        section:'resistance', sub:'Shoulders', phases:[3,4,5], equipment:['barbell'], impact:'low', muscles:'Anterior/Medial Deltoid, Triceps', notes:'Standing or seated, full ROM' },
+  { id:'res-db-shoulder', name:'Seated DB Shoulder Press',      section:'resistance', sub:'Shoulders', phases:[1,2,3], equipment:['dumbbell'], impact:'low', muscles:'Anterior/Medial Deltoid, Triceps', notes:'Controlled descent' },
+  { id:'res-sl-db-sh',    name:'Single-Leg DB Shoulder Press',  section:'resistance', sub:'Shoulders', phases:[2,3], equipment:['dumbbell'], impact:'low',   muscles:'Deltoids, Core Stability',        notes:'Phase 2 stability pair' },
+  { id:'res-lat-raise',   name:'Lateral Raise',                 section:'resistance', sub:'Shoulders', phases:[2,3,4], equipment:['dumbbell'], impact:'low', muscles:'Medial Deltoid',                  notes:'Raise to shoulder height' },
+  { id:'res-front-raise', name:'Front Raise',                   section:'resistance', sub:'Shoulders', phases:[2,3,4], equipment:['dumbbell'], impact:'low', muscles:'Anterior Deltoid',                notes:'Controlled, to shoulder height' },
+  { id:'res-arnold',      name:'Arnold Press',                  section:'resistance', sub:'Shoulders', phases:[2,3], equipment:['dumbbell'], impact:'low',   muscles:'All Deltoid Heads',               notes:'Rotate as you press overhead' },
+  { id:'res-bku',         name:'Bottoms-Up Kettlebell Press',   section:'resistance', sub:'Shoulders', phases:[2,3], equipment:['kettlebell'], impact:'low',   muscles:'Deltoids, Core, Rotator Cuff',    notes:'Phase 2 stability. Hold KB inverted' },
+  // RESISTANCE: Legs
+  { id:'res-barbell-sq',  name:'Barbell Squat',                 section:'resistance', sub:'Legs', phases:[2,3,4,5], equipment:['barbell'], impact:'low', muscles:'Quads, Glutes, Hamstrings, Core',      notes:'Depth to parallel or below' },
+  { id:'res-goblet-sq',   name:'Goblet Squat',                  section:'resistance', sub:'Legs', phases:[1,2,3], equipment:['dumbbell'], impact:'low',   muscles:'Quads, Glutes, Core',                  notes:'DB or KB at chest' },
+  { id:'res-sl-squat-r',  name:'Single-Leg Squat (Resistance)', section:'resistance', sub:'Legs', phases:[2,3], equipment:[], impact:'low',     muscles:'Quads, Glutes, Core',                  notes:'Phase 2 stability pair' },
+  { id:'res-leg-press',   name:'Leg Press',                     section:'resistance', sub:'Legs', phases:[1,2,3,4], equipment:['machine'], impact:'low', muscles:'Quads, Glutes, Hamstrings',            notes:'Controlled descent' },
+  { id:'res-rdl',         name:'Romanian Deadlift',             section:'resistance', sub:'Legs', phases:[2,3,4,5], equipment:['dumbbell'], impact:'low', muscles:'Hamstrings, Glutes, Erectors',          notes:'Hinge at hips, neutral spine' },
+  { id:'res-sl-rdl-r',    name:'Single-Leg Romanian Deadlift (Resistance)', section:'resistance', sub:'Legs', phases:[2,3,4], equipment:['dumbbell'], impact:'low', muscles:'Hamstrings, Glutes', notes:'Phase 2 stability pair' },
+  { id:'res-lunge',       name:'Lunge (Forward / Reverse)',     section:'resistance', sub:'Legs', phases:[1,2,3,4], equipment:[], impact:'low', muscles:'Quads, Glutes, Hamstrings',            notes:'90° both knees' },
+  { id:'res-step-up',     name:'Step-Up',                       section:'resistance', sub:'Legs', phases:[1,2,3,4], equipment:['box'], impact:'low', muscles:'Quads, Glutes',                        notes:'Drive through heel, full hip ext' },
+  { id:'res-leg-curl',    name:'Leg Curl',                      section:'resistance', sub:'Legs', phases:[1,2,3,4], equipment:['machine'], impact:'low', muscles:'Hamstrings',                           notes:'Full ROM, slow eccentric' },
+  { id:'res-leg-ext',     name:'Leg Extension',                 section:'resistance', sub:'Legs', phases:[1,2,3], equipment:['machine'], impact:'low',   muscles:'Quadriceps',                          notes:'Full ROM, controlled' },
+  { id:'res-calf-raise',  name:'Calf Raise (Bilateral)',        section:'resistance', sub:'Legs', phases:[1,2,3,4], equipment:[], impact:'low', muscles:'Gastrocnemius, Soleus',               notes:'Full ROM, slow eccentric' },
+  { id:'res-sl-calf',     name:'Single-Leg Calf Raise',         section:'resistance', sub:'Legs', phases:[2,3,4], equipment:[], impact:'low',   muscles:'Gastrocnemius, Soleus',               notes:'Phase 2 stability pair' },
+  { id:'res-deadlift',    name:'Deadlift',                      section:'resistance', sub:'Legs', phases:[3,4,5], equipment:['barbell'], impact:'low',   muscles:'Hamstrings, Glutes, Erectors, Traps', notes:'Push floor away, neutral spine' },
+  // RESISTANCE: Biceps
+  { id:'res-bar-curl',    name:'Barbell Curl',                  section:'resistance', sub:'Biceps', phases:[2,3,4], equipment:['barbell'], impact:'low', muscles:'Biceps Brachii',              notes:'Elbows fixed at sides' },
+  { id:'res-db-curl',     name:'Dumbbell Curl',                 section:'resistance', sub:'Biceps', phases:[1,2,3,4], equipment:['dumbbell'], impact:'low', muscles:'Biceps Brachii',             notes:'Alternate or bilateral, supinate top' },
+  { id:'res-hammer',      name:'Hammer Curl',                   section:'resistance', sub:'Biceps', phases:[2,3,4], equipment:['dumbbell'], impact:'low', muscles:'Brachialis, Biceps',           notes:'Neutral grip throughout' },
+  { id:'res-cable-curl',  name:'Cable Curl',                    section:'resistance', sub:'Biceps', phases:[2,3,4], equipment:['cable'], impact:'low', muscles:'Biceps Brachii',              notes:'Low pulley, constant tension' },
+  // RESISTANCE: Triceps
+  { id:'res-pushdown',    name:'Tricep Pushdown',               section:'resistance', sub:'Triceps', phases:[1,2,3,4], equipment:['cable'], impact:'low', muscles:'Triceps Brachii',           notes:'Elbows at sides, full extension' },
+  { id:'res-oh-ext',      name:'Overhead Tricep Extension',     section:'resistance', sub:'Triceps', phases:[2,3,4], equipment:['dumbbell'], impact:'low', muscles:'Triceps (Long Head)',          notes:'Cable or DB, full ROM' },
+  { id:'res-skull',       name:'Skull Crusher',                 section:'resistance', sub:'Triceps', phases:[3,4], equipment:['dumbbell'], impact:'low',   muscles:'Triceps Brachii',             notes:'EZ bar or DB, lower to forehead' },
+  { id:'res-dip',         name:'Tricep Dip',                    section:'resistance', sub:'Triceps', phases:[2,3,4], equipment:[], impact:'low', muscles:'Triceps, Anterior Deltoid',   notes:'Bench or parallel bars' },
+  { id:'res-cgbp',        name:'Close-Grip Bench Press',        section:'resistance', sub:'Triceps', phases:[3,4,5], equipment:['barbell'], impact:'low', muscles:'Triceps, Pectorals',          notes:'Shoulder-width or narrower grip' },
+  // RESISTANCE: Total Body
+  { id:'res-kb-swing',    name:'Kettlebell Swing',              section:'resistance', sub:'Total Body', phases:[3,4,5], equipment:['kettlebell'], impact:'low', muscles:'Glutes, Hamstrings, Core',  notes:'Hip hinge power, lock hips at top' },
+  { id:'res-clean',       name:'Power Clean',                   section:'resistance', sub:'Total Body', phases:[4,5], equipment:['barbell'], impact:'low',  muscles:'Full Body, Power',           notes:'Olympic lift — technique focused' },
+  { id:'res-thruster',    name:'Thruster (Squat to Press)',     section:'resistance', sub:'Total Body', phases:[3,4,5], equipment:['dumbbell'], impact:'low', muscles:'Full Body',                  notes:'Front squat drive into overhead press' },
+  { id:'res-mb-slam',     name:'Med Ball Slam',                 section:'resistance', sub:'Total Body', phases:[5], equipment:['med_ball'], impact:'high',    muscles:'Core, Lats, Shoulders',      notes:'Overhead slam, explosive' },
+  { id:'res-exp-pushup',  name:'Explosive Push-Up / Clap Push-Up', section:'resistance', sub:'Total Body', phases:[5], equipment:[], impact:'high', muscles:'Pectorals, Triceps (Power)', notes:'Explosive concentric, leave ground' },
+  // CLIENT'S CHOICE
+  { id:'cc-treadmill',    name:'Treadmill Run / Walk',          section:'clientschoice', sub:'Cardio',       phases:[1,2,3,4,5], equipment:['cardio_machine'], impact:'high', muscles:'Cardiorespiratory',    notes:'Client preference, moderate intensity' },
+  { id:'cc-bike',         name:'Stationary Bike',               section:'clientschoice', sub:'Cardio',       phases:[1,2,3,4,5], equipment:['cardio_machine'], impact:'low', muscles:'Cardiorespiratory',    notes:'Client preference' },
+  { id:'cc-rowing',       name:'Rowing Machine',                section:'clientschoice', sub:'Cardio',       phases:[1,2,3,4,5], equipment:['cardio_machine'], impact:'low', muscles:'Full Body',            notes:'Monitor form and posture' },
+  { id:'cc-elliptical',   name:'Elliptical',                    section:'clientschoice', sub:'Cardio',       phases:[1,2,3,4,5], equipment:['cardio_machine'], impact:'low', muscles:'Cardiorespiratory',    notes:'Low impact' },
+  { id:'cc-battle-ropes', name:'Battle Ropes',                  section:'clientschoice', sub:'Conditioning', phases:[2,3,4,5], equipment:['battle_ropes'], impact:'low',   muscles:'Arms, Core',           notes:'30s on / 30s off intervals' },
+  { id:'cc-turkish',      name:'Turkish Get-Up',                section:'clientschoice', sub:'Strength',     phases:[2,3,4,5], equipment:['kettlebell'], impact:'low',   muscles:'Full Body, Core',      notes:'Slow and deliberate, each side' },
+  { id:'cc-box-jumps',    name:'Box Jumps (Client Choice)',     section:'clientschoice', sub:'Plyometric',   phases:[2,3,4,5], equipment:['box'], impact:'high',   muscles:'Lower Body Power',     notes:'Client enjoys power training' },
+  { id:'cc-march',        name:'Low-Impact Cardio (March / Shadow Box)', section:'clientschoice', sub:'Cardio', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Cardiorespiratory',    notes:'Apartment-friendly — march in place, step jacks, or shadow boxing. 5-10 min, keep heart rate up, no jumping.' },
+  { id:'cc-jump-rope',    name:'Jump Rope',                     section:'clientschoice', sub:'Conditioning', phases:[1,2,3,4,5], equipment:['jump_rope'], impact:'high', muscles:'Cardiorespiratory, Calves', notes:'Portable cardio — intervals or steady. High impact.' },
+  { id:'cc-custom',       name:'Custom Exercise',               section:'clientschoice', sub:'Other',        phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Client choice',        notes:'Enter details manually' },
+  // COOL-DOWN
+  { id:'cd-cardio',       name:'Light Cardio (Cool-Down)',      section:'cooldown', sub:'Cardio (Optional)',  phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Cardiorespiratory',    notes:'5-10 min, low intensity' },
+  { id:'cd-smr-calves',   name:'SMR: Calves (Cool-Down)',       section:'cooldown', sub:'SMR / Foam Rolling', phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Gastrocnemius, Soleus', notes:'Hold tender areas 30s' },
+  { id:'cd-smr-ham',      name:'SMR: Hamstrings (Cool-Down)',   section:'cooldown', sub:'SMR / Foam Rolling', phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Hamstrings',           notes:'Hold 30s' },
+  { id:'cd-smr-quads',    name:'SMR: Quadriceps (Cool-Down)',   section:'cooldown', sub:'SMR / Foam Rolling', phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Quadriceps',           notes:'Hold 30s' },
+  { id:'cd-smr-it',       name:'SMR: IT Band (Cool-Down)',      section:'cooldown', sub:'SMR / Foam Rolling', phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'IT Band, TFL',         notes:'Hold 30s' },
+  { id:'cd-smr-lats',     name:'SMR: Lats (Cool-Down)',         section:'cooldown', sub:'SMR / Foam Rolling', phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Latissimus Dorsi',     notes:'Hold 30s' },
+  { id:'cd-smr-thor',     name:'SMR: Thoracic Spine (Cool-Down)', section:'cooldown', sub:'SMR / Foam Rolling', phases:[1,2,3,4,5], equipment:['foam_roller'], impact:'low', muscles:'Thoracic Spine',    notes:'Hold 30s' },
+  { id:'cd-ss-gastro',    name:'Static Stretch: Gastrocnemius (Cool-Down)', section:'cooldown', sub:'Static Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Gastrocnemius', notes:'Hold 30s each side' },
+  { id:'cd-ss-ham',       name:'Static Stretch: Hamstring (Cool-Down)',     section:'cooldown', sub:'Static Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Hamstrings',     notes:'Hold 30s each side' },
+  { id:'cd-ss-hip',       name:'Static Stretch: Hip Flexor (Cool-Down)',    section:'cooldown', sub:'Static Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Hip Flexors',     notes:'Hold 30s each side' },
+  { id:'cd-ss-pir',       name:'Static Stretch: Piriformis (Cool-Down)',    section:'cooldown', sub:'Static Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Piriformis',      notes:'Figure-4, hold 30s' },
+  { id:'cd-ss-pec',       name:'Static Stretch: Pectorals (Cool-Down)',     section:'cooldown', sub:'Static Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Pectorals',       notes:'Doorway stretch, hold 30s' },
+  { id:'cd-ss-lat',       name:'Static Stretch: Lats (Cool-Down)',          section:'cooldown', sub:'Static Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Latissimus Dorsi', notes:'Hold 30s' },
+  { id:'cd-ss-adductor',  name:'Static Stretch: Adductor (Cool-Down)',      section:'cooldown', sub:'Static Stretching', phases:[1,2,3,4,5], equipment:[], impact:'low', muscles:'Adductors',       notes:'Hold 30s' },
+];
+
+const SECTIONS = [
+  { id:'warmup',           label:'Warm-Up' },
+  { id:'activation',       label:'Activation (Core & Balance)' },
+  { id:'skilldevelopment', label:'Skill Development (Plyometric & SAQ)' },
+  { id:'resistance',       label:'Resistance Training' },
+  { id:'clientschoice',    label:"Client's Choice" },
+  { id:'cooldown',         label:'Cool-Down' },
+];
+
+// ===== STATE =====
+let state = {
+  workouts: {},
+  weekPlans: {},
+  currentWorkoutId: null,
+  currentWeekOffset: 0,
+};
+
+let pickerState = { sectionId: null, activeSub: null, searchTerm: '' };
+let assignState = { dayKey: null, weekKey: null };
+
+// ===== STORAGE =====
+function saveState() {
+  try { localStorage.setItem('nasm_opt_v1', JSON.stringify({ workouts: state.workouts, weekPlans: state.weekPlans })); } catch(e) {}
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem('nasm_opt_v1');
+    if (raw) { const s = JSON.parse(raw); state.workouts = s.workouts||{}; state.weekPlans = s.weekPlans||{}; }
+  } catch(e) {}
+}
+function generateId() { return 'w_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+// ===== WEEK UTILITIES =====
+function getWeekKey(offset) {
+  const d = new Date(); d.setDate(d.getDate() + offset * 7);
+  const y = d.getFullYear(); const s = new Date(y,0,1);
+  const w = Math.ceil(((d-s)/86400000 + s.getDay()+1)/7);
+  return `${y}-W${String(w).padStart(2,'0')}`;
+}
+function getWeekDates(offset) {
+  const d = new Date(); d.setDate(d.getDate() + offset*7);
+  const day = d.getDay(); d.setDate(d.getDate() + (day===0?-6:1-day));
+  return ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((label,i) => {
+    const dd = new Date(d); dd.setDate(d.getDate()+i); return { label, date: dd, key: label };
+  });
+}
+function getWeekLabel(offset) {
+  const days = getWeekDates(offset);
+  const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return `${fmt(days[0].date)} – ${fmt(days[6].date)}, ${days[0].date.getFullYear()}`;
+}
+
+// ===== VIEW ROUTER =====
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(el=>{
+    if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes("'"+v+"'")) el.classList.add('active');
+  });
+  if(v==='week') renderWeek();
+  if(v==='library') renderLibrary();
+  if(v==='builder') renderBuilder();
+}
+
+// ===== WEEK PLANNER =====
+function changeWeek(dir) {
+  if(dir===0) state.currentWeekOffset=0; else state.currentWeekOffset+=dir;
+  renderWeek();
+}
+function renderWeek() {
+  document.getElementById('week-label').textContent = getWeekLabel(state.currentWeekOffset);
+  const weekKey = getWeekKey(state.currentWeekOffset);
+  const days = getWeekDates(state.currentWeekOffset);
+  const plan = state.weekPlans[weekKey]||{};
+  const grid = document.getElementById('week-grid');
+  grid.innerHTML = '';
+  days.forEach(({label,date,key}) => {
+    const assigned = plan[key]||[];
+    const isToday = date.toDateString()===new Date().toDateString();
+    const card = document.createElement('div');
+    card.className = 'day-card'+(assigned.length>0?' has-workout':'');
+    card.innerHTML = `
+      <div class="day-header" ${isToday?'style="background:#f0a040"':''}>
+        <span>${label}</span><span class="date-num">${date.getDate()}</span>
+      </div>
+      <div class="day-body">
+        ${assigned.map(wid=>{
+          const w=state.workouts[wid]; if(!w) return '';
+          return `<div class="day-workout-pill" onclick="openWorkoutFromDay('${wid}')">
+            <span class="pill-name">${w.name||'Unnamed'}</span>
+            <span class="pill-phase">Ph ${w.phase}</span>
+            <span class="pill-remove" onclick="event.stopPropagation();removeFromDay('${weekKey}','${key}','${wid}')">&#x2715;</span>
+          </div>`;
+        }).join('')}
+        ${assigned.length===0?'<div class="day-rest">Rest Day</div>':''}
+        <div class="day-add-btn" onclick="openAssignModal('${weekKey}','${key}')">+ Add Workout</div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+function openWorkoutFromDay(wid) {
+  state.currentWorkoutId=wid;
+  document.getElementById('builder-tab').style.display='inline-flex';
+  showView('builder');
+}
+function removeFromDay(weekKey,dayKey,wid) {
+  if(!state.weekPlans[weekKey]) return;
+  state.weekPlans[weekKey][dayKey]=(state.weekPlans[weekKey][dayKey]||[]).filter(id=>id!==wid);
+  saveState(); renderWeek();
+}
+
+// ===== ASSIGN MODAL =====
+function openAssignModal(weekKey,dayKey) {
+  assignState={weekKey,dayKey};
+  const list=document.getElementById('assign-list');
+  const workouts=Object.values(state.workouts).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  if(workouts.length===0) {
+    list.innerHTML='<div class="no-results" style="padding:30px">No saved workouts yet.<br><br><button class="btn btn-primary" onclick="closeAssign();newWorkout()">+ Create New Workout</button></div>';
+  } else {
+    list.innerHTML=workouts.map(w=>`
+      <div class="assign-item" onclick="assignWorkout('${w.id}')">
+        <div><div class="ai-name">${w.name||'Unnamed Workout'}</div>
+        <div class="ai-meta">Phase ${w.phase} · ${w.goal||'No goal'} · ${w.date||'No date'}</div></div>
+        <span class="pill-phase">Ph ${w.phase}</span>
+      </div>`).join('');
+  }
+  document.getElementById('assign-title').textContent=`Assign to ${dayKey}`;
+  document.getElementById('assign-modal').classList.add('open');
+}
+function closeAssign() { document.getElementById('assign-modal').classList.remove('open'); }
+function assignWorkout(wid) {
+  const {weekKey,dayKey}=assignState;
+  if(!state.weekPlans[weekKey]) state.weekPlans[weekKey]={};
+  if(!state.weekPlans[weekKey][dayKey]) state.weekPlans[weekKey][dayKey]=[];
+  if(!state.weekPlans[weekKey][dayKey].includes(wid)) state.weekPlans[weekKey][dayKey].push(wid);
+  saveState(); closeAssign(); renderWeek(); toast('Workout assigned!');
+}
+
+// ===== WORKOUT LIBRARY =====
+function renderLibrary() {
+  const grid=document.getElementById('workout-grid');
+  const workouts=Object.values(state.workouts).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  let html=`<div class="new-workout-card" onclick="newWorkout()"><div class="plus">+</div><div class="label">New Workout</div></div>`;
+  workouts.forEach(w=>{
+    const sectionCounts={};
+    SECTIONS.forEach(s=>{ const c=(w.exercises[s.id]||[]).length; if(c>0) sectionCounts[s.label]=c; });
+    const totalEx=Object.values(sectionCounts).reduce((a,b)=>a+b,0);
+    const sectionTags=Object.keys(sectionCounts).slice(0,3).map(s=>{
+      const short=s.replace('Activation (Core & Balance)','Activation').replace('Skill Development (Plyometric & SAQ)','Skill Dev').replace("Client's Choice","Client's Choice");
+      return `<span class="wc-section-tag">${short}</span>`;
+    }).join('');
+    html+=`<div class="workout-card">
+      <div class="workout-card-header">
+        <div class="wc-name">${w.name||'Unnamed Workout'}</div>
+        <div class="wc-meta"><span>Phase ${w.phase}</span>${w.goal?`<span>${w.goal}</span>`:''}${w.date?`<span>${w.date}</span>`:''}</div>
+      </div>
+      <div class="workout-card-body">
+        <div class="wc-sections">${sectionTags||'<span style="color:var(--gray-500);font-size:12px">No exercises yet</span>'}</div>
+        <div class="wc-exercise-count">${totalEx} exercise${totalEx!==1?'s':''}</div>
+      </div>
+      <div class="workout-card-actions">
+        <button class="btn btn-primary btn-sm" onclick="editWorkout('${w.id}')">✏️ Edit</button>
+        <button class="btn btn-outline btn-sm" onclick="duplicateWorkout('${w.id}')">📋 Duplicate</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteWorkout('${w.id}')">🗑</button>
+      </div>
+    </div>`;
+  });
+  grid.innerHTML=html;
+}
+function newWorkout() {
+  const id=generateId();
+  const today=new Date().toISOString().slice(0,10);
+  state.workouts[id]={ id, name:'New Workout', client:'', goal:'', phase:1, date:today, setting:'Full Gym',
+    exercises:{warmup:[],activation:[],skilldevelopment:[],resistance:[],clientschoice:[],cooldown:[]},
+    coaching:'', createdAt:Date.now(), updatedAt:Date.now() };
+  saveState(); state.currentWorkoutId=id;
+  document.getElementById('builder-tab').style.display='inline-flex';
+  showView('builder');
+}
+function editWorkout(id) {
+  state.currentWorkoutId=id;
+  document.getElementById('builder-tab').style.display='inline-flex';
+  showView('builder');
+}
+function duplicateWorkout(id) {
+  const orig=state.workouts[id]; if(!orig) return;
+  const newId=generateId();
+  const copy=JSON.parse(JSON.stringify(orig));
+  copy.id=newId; copy.name='Copy of '+orig.name; copy.createdAt=copy.updatedAt=Date.now();
+  state.workouts[newId]=copy; saveState(); renderLibrary(); toast('Workout duplicated!');
+}
+function deleteWorkout(id) {
+  if(!confirm('Delete this workout?')) return;
+  delete state.workouts[id];
+  Object.values(state.weekPlans).forEach(plan=>{ Object.keys(plan).forEach(day=>{ plan[day]=plan[day].filter(wid=>wid!==id); }); });
+  saveState(); renderLibrary(); toast('Deleted.');
+}
+
+// ===== WORKOUT BUILDER =====
+function getWorkout() { return state.workouts[state.currentWorkoutId]; }
+function markDirty() { syncWorkoutHeader(); }
+function syncWorkoutHeader() {
+  const w=getWorkout(); if(!w) return;
+  const client=document.getElementById('b-client').value;
+  const phase=document.getElementById('b-phase').value;
+  w.name=client ? `${client} – Phase ${phase}` : 'New Workout';
+  w.client=client; w.goal=document.getElementById('b-goal').value;
+  w.phase=parseInt(phase); w.date=document.getElementById('b-date').value;
+  w.setting=document.getElementById('b-setting').value;
+  w.coaching=document.getElementById('b-coaching').value;
+  w.updatedAt=Date.now();
+}
+function renderBuilder() {
+  const w=getWorkout(); if(!w){ showView('library'); return; }
+  document.getElementById('b-client').value=w.client||'';
+  document.getElementById('b-goal').value=w.goal||'';
+  document.getElementById('b-phase').value=w.phase||1;
+  document.getElementById('b-date').value=w.date||'';
+  document.getElementById('b-setting').value=w.setting||'Full Gym';
+  document.getElementById('b-coaching').value=w.coaching||'';
+  updateGoalContext(); updateSettingContext(); renderSections();
+}
+function updatePhaseContext() {
+  const phase=parseInt(document.getElementById('b-phase').value);
+  const banner=document.getElementById('phase-context');
+  const gc=GOAL_CONTEXT[document.getElementById('b-goal').value];
+  const phaseText=PHASE_CONTEXT[phase]||'';
+  if(gc) {
+    banner.innerHTML=`<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(26,58,107,0.2)">
+      <strong>${gc.icon} ${document.getElementById('b-goal').value} — Progression:</strong> ${gc.progression}
+      &nbsp;&nbsp;|&nbsp;&nbsp;${gc.summary}
+    </div>
+    <div>${phaseText}</div>`;
+  } else {
+    banner.textContent=phaseText;
+  }
+}
+function updateSettingContext() {
+  const name=document.getElementById('b-setting').value||'Full Gym';
+  const cfg=SETTINGS[name]||SETTINGS['Full Gym'];
+  const banner=document.getElementById('setting-context');
+  if(name==='Full Gym'){ banner.style.display='none'; }
+  else {
+    banner.style.display='block';
+    banner.innerHTML=`<strong>${cfg.icon} ${name}:</strong> ${cfg.note} &nbsp;Exercises you can't do here are dimmed with a <strong>⚠ Swap</strong> button.`;
+  }
+  renderSections();
+}
+function updateGoalContext() {
+  const goal=document.getElementById('b-goal').value;
+  const phaseSelect=document.getElementById('b-phase');
+  // Phase restrictions per goal
+  const GOAL_PHASES={
+    'Fat Loss':          [1,2,3],
+    'Muscle Gain':       [1,2,3,4],
+    'Sport Performance': [1,2,5],
+  };
+  const allowed=GOAL_PHASES[goal]||[1,2,3,4,5];
+  Array.from(phaseSelect.options).forEach(opt=>{
+    const ph=parseInt(opt.value);
+    opt.disabled=!allowed.includes(ph);
+    opt.style.color=opt.disabled?'#bbb':'';
+    opt.title=opt.disabled?`Phase ${ph} is not part of the ${goal} progression`:'';
+  });
+  // If current phase is now disallowed, jump to first valid one
+  if(!allowed.includes(parseInt(phaseSelect.value))) {
+    phaseSelect.value=String(allowed[0]);
+  }
+  updatePhaseContext();
+}
+function renderSections() {
+  const w=getWorkout();
+  const phase=parseInt(document.getElementById('b-phase').value);
+  const container=document.getElementById('workout-sections');
+  container.innerHTML='';
+  SECTIONS.forEach(sec=>{
+    const exercises=w.exercises[sec.id]||[];
+    const defaults=PHASE_DEFAULTS[phase][sec.id]||{};
+    const div=document.createElement('div');
+    div.className='workout-section'; div.id='section-'+sec.id;
+    const setting=currentSetting();
+    const tableRows=exercises.map((ex,i)=>{
+      const lib=EXERCISE_LIBRARY.find(e=>e.id===ex.id);
+      const chk=lib?checkExerciseSetting(lib,setting):{ok:true,reason:''};
+      const warnRow=chk.ok?'':`<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="background:#fff0e0;color:#b35900;border:1px solid #f0c088;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700">⚠ ${esc(chk.reason)}</span>
+          <button class="btn btn-accent btn-sm" style="padding:2px 10px;font-size:11px" onclick="openPicker('${sec.id}',${i},'${esc((lib&&lib.muscles)||ex.muscles||'')}')">🔁 Swap</button>
+        </div>`;
+      return `<tr ${chk.ok?'':'style="background:#fffaf2"'}>
+      <td style="width:28px"><span style="color:var(--gray-300);cursor:grab;font-size:16px;padding:0 4px">&#8597;</span></td>
+      <td>
+        <div class="col-name">${esc(ex.name)}</div>
+        ${ex.muscles?`<div class="col-sub">${esc(ex.muscles)}</div>`:''}
+        ${warnRow}
+        <input class="ex-note-inline" value="${esc(ex.notes||'')}" placeholder="Add a note or cue..." oninput="updateExercise('${sec.id}',${i},'notes',this.value)" title="Notes">
+      </td>
+      <td><input class="ex-input" style="width:60px${ex.sets&&ex.sets!==defaults.sets?';border-color:var(--navy-light);background:#f0f4ff':''}" value="${esc(ex.sets||'')}" placeholder="${esc(defaults.sets||'')}" oninput="updateExercise('${sec.id}',${i},'sets',this.value)" title="${ex.sets&&ex.sets!==defaults.sets?'Custom value (phase default: '+esc(defaults.sets||'')+')':`Phase ${phase} default`}"></td>
+      <td><input class="ex-input" style="width:60px${ex.reps&&ex.reps!==defaults.reps?';border-color:var(--navy-light);background:#f0f4ff':''}" value="${esc(ex.reps||'')}" placeholder="${esc(defaults.reps||'')}" oninput="updateExercise('${sec.id}',${i},'reps',this.value)" title="${ex.reps&&ex.reps!==defaults.reps?'Custom value (phase default: '+esc(defaults.reps||'')+')':`Phase ${phase} default`}"></td>
+      <td><input class="ex-input" style="width:80px${ex.tempo&&ex.tempo!==defaults.tempo?';border-color:var(--navy-light);background:#f0f4ff':''}" value="${esc(ex.tempo||'')}" placeholder="${esc(defaults.tempo||'')}" oninput="updateExercise('${sec.id}',${i},'tempo',this.value)" title="${ex.tempo&&ex.tempo!==defaults.tempo?'Custom value (phase default: '+esc(defaults.tempo||'')+')':`Phase ${phase} default`}"></td>
+      <td><input class="ex-input" style="width:70px${ex.rest&&ex.rest!==defaults.rest?';border-color:var(--navy-light);background:#f0f4ff':''}" value="${esc(ex.rest||'')}" placeholder="${esc(defaults.rest||'')}" oninput="updateExercise('${sec.id}',${i},'rest',this.value)" title="${ex.rest&&ex.rest!==defaults.rest?'Custom value (phase default: '+esc(defaults.rest||'')+')':`Phase ${phase} default`}"></td>
+      <td style="width:28px"><span class="ex-remove" onclick="removeExercise('${sec.id}',${i})">&#x2715;</span></td>
+    </tr>`;
+    }).join('');
+    div.innerHTML=`
+      <div class="section-header" onclick="toggleSection('${sec.id}')">
+        <span class="section-title">${sec.label}<span class="section-count">${exercises.length}</span></span>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${exercises.length>0?`<button class="btn btn-sm" style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);font-size:11px;padding:3px 9px" onclick="event.stopPropagation();resetSectionDefaults('${sec.id}')">↺ Reset Defaults</button>`:''}
+          <span class="section-toggle" id="toggle-${sec.id}">&#9660;</span>
+        </div>
+      </div>
+      <div class="section-body" id="body-${sec.id}">
+        ${exercises.length>0?`<table class="exercise-table">
+          <thead><tr><th style="width:28px"></th><th>Exercise / Notes</th><th style="width:70px">Sets</th><th style="width:70px">Reps</th><th style="width:90px">Tempo</th><th style="width:80px">Rest</th><th style="width:28px"></th></tr></thead>
+          <tbody>${tableRows}</tbody></table>`:''}
+        <div class="add-exercise-row"><button class="btn-add-ex" onclick="openPicker('${sec.id}')">+ Add Exercise</button></div>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toggleSection(id) {
+  const body=document.getElementById('body-'+id), toggle=document.getElementById('toggle-'+id);
+  body.classList.toggle('collapsed'); toggle.textContent=body.classList.contains('collapsed')?'▶':'▼';
+}
+function updateExercise(sectionId,idx,field,value) {
+  const w=getWorkout(); if(!w||!w.exercises[sectionId]||!w.exercises[sectionId][idx]) return;
+  w.exercises[sectionId][idx][field]=value; w.updatedAt=Date.now();
+}
+function removeExercise(sectionId,idx) {
+  const w=getWorkout(); if(!w) return;
+  w.exercises[sectionId].splice(idx,1); w.updatedAt=Date.now(); renderSections();
+}
+function saveWorkout() {
+  syncWorkoutHeader(); const w=getWorkout(); if(!w) return;
+  saveState(); renderSections(); toast('Workout saved!');
+}
+function resetSectionDefaults(sectionId) {
+  const w=getWorkout(); if(!w) return;
+  const phase=parseInt(document.getElementById('b-phase').value);
+  const defaults=PHASE_DEFAULTS[phase][sectionId]||{};
+  (w.exercises[sectionId]||[]).forEach(ex=>{
+    ex.sets=defaults.sets||''; ex.reps=defaults.reps||'';
+    ex.tempo=defaults.tempo||''; ex.rest=defaults.rest||'';
+  });
+  w.updatedAt=Date.now(); saveState(); renderSections();
+  toast('Reset to Phase '+phase+' defaults');
+}
+
+// ===== EXERCISE PICKER =====
+function openPicker(sectionId, swapIdx=null, swapMuscles='') {
+  pickerState={sectionId, activeSub:null, searchTerm:'', swapIdx, swapMuscles:swapMuscles||''};
+  document.getElementById('picker-search').value='';
+  const secLabel=SECTIONS.find(s=>s.id===sectionId)?.label||sectionId;
+  document.getElementById('picker-title').textContent=
+    (swapIdx!==null&&swapIdx!==undefined) ? `🔁 Swap Exercise — find a replacement` : `Add Exercise — ${secLabel}`;
+  renderPickerSidebar(sectionId); renderPickerList(sectionId);
+  document.getElementById('exercise-picker-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('picker-search').focus(),100);
+}
+function closePicker() { document.getElementById('exercise-picker-modal').classList.remove('open'); }
+function renderPickerSidebar(sectionId) {
+  const subs=[...new Set(EXERCISE_LIBRARY.filter(e=>e.section===sectionId).map(e=>e.sub))];
+  document.getElementById('picker-sidebar').innerHTML=
+    `<div class="modal-sidebar-item ${!pickerState.activeSub?'active':''}" onclick="setPickerSub(null)">All Exercises</div>`+
+    subs.map(sub=>`<div class="modal-sidebar-item ${pickerState.activeSub===sub?'active':''}" onclick='setPickerSubStr(${JSON.stringify(sub)})'>${esc(sub)}</div>`).join('');
+}
+function setPickerSub(sub) { pickerState.activeSub=sub; renderPickerSidebar(pickerState.sectionId); renderPickerList(pickerState.sectionId); }
+function setPickerSubStr(sub) { setPickerSub(sub); }
+function filterExercises() { pickerState.searchTerm=document.getElementById('picker-search').value.toLowerCase(); renderPickerList(pickerState.sectionId); }
+function renderPickerList(sectionId) {
+  const phase=parseInt(document.getElementById('b-phase').value);
+  const term=pickerState.searchTerm, sub=pickerState.activeSub;
+  let exercises=EXERCISE_LIBRARY.filter(e=>e.section===sectionId);
+  if(sub&&!term) exercises=exercises.filter(e=>e.sub===sub);
+  if(term) exercises=exercises.filter(e=>e.name.toLowerCase().includes(term)||(e.muscles||'').toLowerCase().includes(term)||(e.sub||'').toLowerCase().includes(term));
+  const setting=currentSetting();
+  // In swap mode, prioritise exercises sharing a muscle word with the one being replaced.
+  const swapWords=(pickerState.swapMuscles||'').toLowerCase().split(/[,\s]+/).filter(x=>x.length>2);
+  const muscleScore=ex=>{ if(!swapWords.length) return 0; const m=(ex.muscles||'').toLowerCase(); return swapWords.some(w=>m.includes(w))?1:0; };
+  const score=ex=>{
+    const doable=checkExerciseSetting(ex,setting).ok?1:0;
+    const phaseM=ex.phases.includes(phase)?1:0;
+    return doable*100 + muscleScore(ex)*10 + phaseM;
+  };
+  exercises.sort((a,b)=>score(b)-score(a));
+  const list=document.getElementById('picker-list');
+  if(!exercises.length){ list.innerHTML='<div class="no-results">No exercises found.</div>'; return; }
+  list.innerHTML=exercises.map(ex=>{
+    const match=ex.phases.includes(phase);
+    const chk=checkExerciseSetting(ex,setting);
+    const phaseBadge=match?`<span class="modal-phase-badge">&#10003; Phase ${phase}</span>`:`<span style="color:var(--gray-500);font-size:11px">Ph ${ex.phases.join(',')}</span>`;
+    const equipBadge=chk.ok?'':`<span style="background:#fff0e0;color:#b35900;border:1px solid #f0c088;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700">⚠ ${esc(chk.reason)}</span>`;
+    return `<div class="modal-ex-item" style="${chk.ok?'':'opacity:0.55'}" onclick="addExercise('${ex.id}')">
+      <div><div class="modal-ex-name">${esc(ex.name)}</div><div class="modal-ex-meta">${esc(ex.sub)}${ex.muscles?' · '+esc(ex.muscles):''}</div></div>
+      <div class="modal-ex-right">${equipBadge}${phaseBadge}</div>
+    </div>`;
+  }).join('');
+}
+function addExercise(exId) {
+  const ex=EXERCISE_LIBRARY.find(e=>e.id===exId); if(!ex) return;
+  const w=getWorkout(); if(!w) return;
+  const sectionId=pickerState.sectionId;
+  const phase=parseInt(document.getElementById('b-phase').value);
+  const defaults=PHASE_DEFAULTS[phase][sectionId]||{};
+  const swapIdx=pickerState.swapIdx;
+  if(swapIdx!==null&&swapIdx!==undefined&&w.exercises[sectionId][swapIdx]){
+    // Preserve the trainer's existing sets/reps/tempo/rest; swap the movement + muscles + default note.
+    const prev=w.exercises[sectionId][swapIdx];
+    w.exercises[sectionId][swapIdx]={ id:exId, name:ex.name, muscles:ex.muscles||'',
+      sets:prev.sets||defaults.sets||'', reps:prev.reps||defaults.reps||'',
+      tempo:prev.tempo||defaults.tempo||'', rest:prev.rest||defaults.rest||'', notes:ex.notes||'' };
+    w.updatedAt=Date.now(); syncWorkoutHeader(); renderSections(); closePicker(); toast('Swapped in: '+ex.name);
+    return;
+  }
+  w.exercises[sectionId].push({ id:exId, name:ex.name, muscles:ex.muscles||'', sets:defaults.sets||'', reps:defaults.reps||'', tempo:defaults.tempo||'', rest:defaults.rest||'', notes:ex.notes||'' });
+  w.updatedAt=Date.now(); syncWorkoutHeader(); renderSections(); closePicker(); toast('Added: '+ex.name);
+}
+
+// ===== PDF EXPORT =====
+function printWorkout() {
+  syncWorkoutHeader(); const w=getWorkout(); if(!w) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'letter' });
+  const PW = doc.internal.pageSize.getWidth();
+  const NAVY=[26,58,107], BLUE=[74,123,196], BLUE_LIGHT=[214,228,247], WHITE=[255,255,255], GRAY=[74,85,104];
+  const PHASE_LABELS={1:'Phase 1 – Stabilization Endurance',2:'Phase 2 – Strength Endurance',3:'Phase 3 – Muscular Development',4:'Phase 4 – Maximal Strength',5:'Phase 5 – Power Training'};
+
+  // Header bar
+  doc.setFillColor(...NAVY);
+  doc.rect(0,0,PW,48,'F');
+  doc.setTextColor(...WHITE);
+  doc.setFontSize(18); doc.setFont('helvetica','bold');
+  doc.text('Optimum Performance Training®', 36, 30);
+  doc.setFontSize(11); doc.setFont('helvetica','normal');
+  doc.text('NASM', PW-36, 30, {align:'right'});
+
+  // Client info grid
+  const infoY=48;
+  const infoH=22;
+  const cols=[[36,'CLIENT\'S NAME',w.client||''],[PW/2,'GOAL',w.goal||'']];
+  const cols2=[[36,'PHASE',PHASE_LABELS[w.phase]||'Phase '+w.phase],[PW/2,'DATE',w.date||'']];
+  [[cols,infoY],[cols2,infoY+infoH]].forEach(([row,y])=>{
+    doc.setDrawColor(170,170,170);
+    doc.setFillColor(...WHITE);
+    doc.rect(36,y,PW-72,infoH,'FD');
+    doc.line(PW/2,y,PW/2,y+infoH);
+    row.forEach(([x,label,val])=>{
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GRAY);
+      doc.text(label+': ', x+6, y+14);
+      const lw=doc.getTextWidth(label+': ');
+      doc.setFont('helvetica','normal'); doc.setTextColor(...[26,32,44]);
+      doc.text(val, x+6+lw, y+14);
+    });
+  });
+
+  // Exercise table
+  const body=[];
+  SECTIONS.forEach(sec=>{
+    body.push([{content:sec.label, colSpan:6, styles:{fillColor:BLUE, textColor:WHITE, fontStyle:'bold', fontSize:9}}]);
+    const exs=w.exercises[sec.id]||[];
+    if(exs.length===0){
+      body.push([{content:'', colSpan:6, styles:{minCellHeight:16}}]);
+    } else {
+      exs.forEach(ex=>{
+        body.push([ex.name+(ex.notes?'\n'+ex.notes:''), ex.sets||'', ex.reps||'', ex.tempo||'', ex.rest||'', '']);
+      });
+    }
+  });
+
+  doc.autoTable({
+    startY: infoY + infoH*2 + 8,
+    margin:{left:36,right:36},
+    head:[[
+      {content:'EXERCISE', styles:{halign:'left'}},
+      'SETS','REPS','TEMPO','REST',
+      {content:'NOTES', styles:{halign:'left'}},
+    ]],
+    body,
+    styles:{fontSize:8, cellPadding:4, lineColor:[200,200,200], lineWidth:0.5},
+    headStyles:{fillColor:NAVY, textColor:WHITE, fontStyle:'bold', fontSize:8},
+    columnStyles:{
+      0:{cellWidth:155, halign:'left'},
+      1:{cellWidth:38, halign:'center'},
+      2:{cellWidth:38, halign:'center'},
+      3:{cellWidth:65, halign:'center'},
+      4:{cellWidth:55, halign:'center'},
+      5:{halign:'left'},
+    },
+    alternateRowStyles:{fillColor:[249,251,253]},
+  });
+
+  // Coaching tips
+  if(w.coaching){
+    const finalY=doc.lastAutoTable.finalY+10;
+    doc.setDrawColor(...NAVY); doc.setLineWidth(1.5);
+    doc.line(36,finalY,PW-36,finalY);
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...NAVY);
+    doc.text('Coaching Tips:', 36, finalY+14);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...GRAY);
+    const lines=doc.splitTextToSize(w.coaching, PW-100);
+    doc.text(lines, 120, finalY+14);
+  }
+
+  const filename=(w.name||'workout').replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.pdf';
+  doc.save(filename);
+  toast('PDF downloaded!');
+}
+
+// ===== EXPORT / IMPORT =====
+function exportData() {
+  const data = JSON.stringify({ workouts: state.workouts, weekPlans: state.weekPlans });
+  navigator.clipboard.writeText(data).then(() => {
+    toast('Copied to clipboard! Paste it into the app on your other device.');
+  }).catch(() => {
+    // Fallback: show in a prompt
+    const w = window.open('', '_blank', 'width=600,height=400');
+    w.document.write('<textarea style="width:100%;height:90%;font-size:11px;font-family:monospace">' + data.replace(/</g,'&lt;') + '</textarea>');
+    toast('Copy all the text from the new window, then paste it on your other device.');
+  });
+}
+function showImport() {
+  const panel = document.getElementById('import-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  if (panel.style.display === 'block') document.getElementById('import-text').focus();
+}
+function importData() {
+  try {
+    const raw = document.getElementById('import-text').value.trim();
+    const parsed = JSON.parse(raw);
+    if (!parsed.workouts) throw new Error('Invalid format');
+    state.workouts = { ...state.workouts, ...parsed.workouts };
+    if (parsed.weekPlans) {
+      Object.keys(parsed.weekPlans).forEach(wk => {
+        if (!state.weekPlans[wk]) state.weekPlans[wk] = {};
+        Object.keys(parsed.weekPlans[wk]).forEach(day => {
+          state.weekPlans[wk][day] = [...new Set([...(state.weekPlans[wk][day]||[]), ...parsed.weekPlans[wk][day]])];
+        });
+      });
+    }
+    saveState(); renderLibrary();
+    document.getElementById('import-panel').style.display = 'none';
+    document.getElementById('import-text').value = '';
+    toast('Data imported! ' + Object.keys(parsed.workouts).length + ' workouts loaded.');
+  } catch(e) {
+    toast('Import failed — make sure you pasted the full exported text.');
+  }
+}
+
+// ===== TOAST =====
+function toast(msg) {
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(()=>t.remove(),2800);
+}
+
+// ===== CLOSE ON OVERLAY CLICK =====
+document.getElementById('exercise-picker-modal').addEventListener('click',function(e){if(e.target===this)closePicker();});
+document.getElementById('assign-modal').addEventListener('click',function(e){if(e.target===this)closeAssign();});
+
+// ===== WEEK 1 FAT LOSS SEED =====
+function seedWeek1FatLoss() {
+  const ids = ['w_fl_w1_mon','w_fl_w1_wed','w_fl_w1_fri'];
+  if (ids.every(id => state.workouts[id])) return; // already seeded
+  const labels = ['Monday','Wednesday','Friday'];
+  const days   = ['Mon','Wed','Fri'];
+  const dates  = ['2026-05-25','2026-05-27','2026-05-29'];
+
+  function makeExercises() {
+    return {
+      warmup: [
+        { id:'smr-calves',    name:'SMR: Calves',               muscles:'Gastrocnemius, Soleus', sets:'1-3', reps:'1', tempo:'Hold 30s', rest:'0',    notes:'Hold tender areas 30s each — Fat Loss SMR priority' },
+        { id:'smr-adductors', name:'SMR: Adductors',            muscles:'Adductors',             sets:'1-3', reps:'1', tempo:'Hold 30s', rest:'0',    notes:'Foam roller perpendicular to inner thigh — Fat Loss SMR priority' },
+        { id:'smr-lats',      name:'SMR: Lats',                 muscles:'Latissimus Dorsi',      sets:'1-3', reps:'1', tempo:'Hold 30s', rest:'0',    notes:'Side-lying, arm overhead — Fat Loss SMR priority' },
+        { id:'ss-hip-flex',   name:'Static Stretch: Hip Flexor',muscles:'Hip Flexors, Psoas',    sets:'1-3', reps:'1', tempo:'Hold 30s', rest:'0',    notes:'Half-kneeling, hold 30s' },
+        { id:'ss-hamstring',  name:'Static Stretch: Hamstring', muscles:'Hamstrings',            sets:'1-3', reps:'1', tempo:'Hold 30s', rest:'0',    notes:'Seated or supine, hold 30s' },
+      ],
+      activation: [
+        { id:'core-bridge', name:'Glute Bridge',       muscles:'Glutes, Hamstrings, Core', sets:'1-3', reps:'12-20', tempo:'4-2-1-1', rest:'0-90s', notes:'Isometric hold or slow controlled reps' },
+        { id:'bal-slb',     name:'Single-Leg Balance', muscles:'Ankles, Knees, Hips',      sets:'1-3', reps:'12-20', tempo:'4-2-1-1', rest:'0-90s', notes:'30-60s each leg, eyes open — progress to eyes closed' },
+      ],
+      skilldevelopment: [
+        { id:'plyo-tempo-squat', name:'Tempo Squat (Low-Impact Sub)', muscles:'Quads, Glutes, Core', sets:'1-3', reps:'5-8', tempo:'Explosive up / 3-5s pause', rest:'0-90s', notes:'Apartment substitute for jump training — explosive concentric WITHOUT leaving the floor, pause at bottom. No noise for downstairs neighbors.' },
+      ],
+      resistance: [
+        { id:'res-goblet-sq', name:'Goblet Squat',            muscles:'Quads, Glutes, Core',        sets:'1-3', reps:'12-20', tempo:'4-2-1-1', rest:'0-90s', notes:'SQUAT PATTERN — DB or KB at chest. Run as circuit, minimal rest between exercises' },
+        { id:'res-rdl',       name:'Romanian Deadlift',       muscles:'Hamstrings, Glutes, Erectors',sets:'1-3', reps:'12-20', tempo:'4-2-1-1', rest:'0-90s', notes:'HIP HINGE PATTERN — dumbbells, hinge at hips, neutral spine, slow eccentric' },
+        { id:'res-pushup',    name:'Push-Up',                 muscles:'Pectorals, Core, Triceps',   sets:'1-3', reps:'12-20', tempo:'4-2-1-1', rest:'0-90s', notes:'PUSH PATTERN — stabilization focus, neutral spine' },
+        { id:'res-pullup',    name:'Pull-Up / Chin-Up',       muscles:'Latissimus Dorsi, Biceps',   sets:'1-3', reps:'12-20', tempo:'4-2-1-1', rest:'0-90s', notes:'PULL PATTERN — pull-up bar. Use bands or assisted reps to hit the 12-20 rep range' },
+        { id:'res-lunge',     name:'Lunge (Forward / Reverse)',muscles:'Quads, Glutes, Hamstrings', sets:'1-3', reps:'12-20', tempo:'4-2-1-1', rest:'0-90s', notes:'LUNGE PATTERN — 90° both knees. Rest 0-90s, then repeat circuit' },
+      ],
+      clientschoice: [
+        { id:'cc-march', name:'Low-Impact Cardio (March / Shadow Box)', muscles:'Cardiorespiratory', sets:'1', reps:'1', tempo:'', rest:'', notes:'5-10 min — march in place, step jacks, or shadow boxing. Apartment-friendly active cardio block, no jumping.' },
+      ],
+      cooldown: [
+        { id:'cd-cardio',     name:'Light Cardio (Cool-Down)',               muscles:'Cardiorespiratory',     sets:'1', reps:'1', tempo:'', rest:'0',    notes:'5 min brisk walk — Fat Loss requires cool-down cardio too' },
+        { id:'cd-smr-calves', name:'SMR: Calves (Cool-Down)',                muscles:'Gastrocnemius, Soleus', sets:'1-3', reps:'1', tempo:'Hold 30s', rest:'0', notes:'Hold 30s' },
+        { id:'cd-smr-ham',    name:'SMR: Hamstrings (Cool-Down)',            muscles:'Hamstrings',             sets:'1-3', reps:'1', tempo:'Hold 30s', rest:'0', notes:'Hold 30s' },
+        { id:'cd-ss-hip',     name:'Static Stretch: Hip Flexor (Cool-Down)', muscles:'Hip Flexors',           sets:'1-3', reps:'1', tempo:'Hold 30s', rest:'0', notes:'Hold 30s each side' },
+        { id:'cd-ss-ham',     name:'Static Stretch: Hamstring (Cool-Down)',  muscles:'Hamstrings',            sets:'1-3', reps:'1', tempo:'Hold 30s', rest:'0', notes:'Hold 30s each side' },
+      ],
+    };
+  }
+
+  const now = Date.now();
+  ids.forEach((id, i) => {
+    state.workouts[id] = {
+      id, name:`Fat Loss Ph1 – ${labels[i]}`, client:'', goal:'Fat Loss', phase:1, date:dates[i], setting:'Apartment (DB + Pull-up Bar)',
+      exercises: makeExercises(),
+      coaching:'Apartment setup (dumbbells + pull-up bar, no jumping). Circuit format: move through all 5 resistance exercises back-to-back with minimal rest between each exercise. Rest 0-90s between full circuits. Focus on controlled movement and perfect form throughout — this is Phase 1, technique first.',
+      createdAt:now, updatedAt:now,
+    };
+  });
+
+  const weekKey = getWeekKey(1);
+  if (!state.weekPlans[weekKey]) state.weekPlans[weekKey] = {};
+  days.forEach((day, i) => {
+    if (!state.weekPlans[weekKey][day]) state.weekPlans[weekKey][day] = [];
+    if (!state.weekPlans[weekKey][day].includes(ids[i])) state.weekPlans[weekKey][day].push(ids[i]);
+  });
+  saveState();
+}
+
+// ===== INIT =====
+loadState(); seedWeek1FatLoss(); renderWeek();
+</script>
+</body>
+</html>
