@@ -814,6 +814,8 @@ let state = {
 
 let pickerState = { sectionId: null, activeSub: null, searchTerm: '' };
 let assignState = { dayKey: null, weekKey: null };
+let currentUser = null;
+let firestoreUnsubscribe = null;
 
 // ===== STORAGE =====
 function saveState() {
@@ -2309,8 +2311,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-let currentUser = null;
-let firestoreUnsubscribe = null;
 
 function toggleAuth() {
   if (currentUser) {
