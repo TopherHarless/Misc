@@ -2345,9 +2345,18 @@ function subscribeFirestore() {
         const data = doc.data();
         state.workouts = data.workouts || {};
         state.weekPlans = data.weekPlans || {};
+        // Re-seed program library if the cloud copy is missing it (idempotent).
+        // Without this, the cloud snapshot overwrites the locally-seeded
+        // program workouts on every load for signed-in users.
+        seedProgramLibrary();
         try { localStorage.setItem('nasm_opt_v1', JSON.stringify({ workouts: state.workouts, weekPlans: state.weekPlans })); } catch(e) {}
         renderWeek();
         if (document.getElementById('view-library').classList.contains('active')) renderLibrary();
+      } else {
+        // First-time signed-in user with no cloud doc yet: push the locally
+        // seeded state (including the program library) up to Firestore.
+        seedProgramLibrary();
+        saveToFirestore();
       }
     }, err => console.error('Firestore error:', err));
 }
