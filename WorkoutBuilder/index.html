@@ -137,7 +137,15 @@
   /* ===== WORKOUT LIBRARY ===== */
   .library-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
   .library-header h2 { font-size: 22px; font-weight: 700; color: var(--navy); }
+  .library-section { margin-bottom: 36px; }
+  .library-section-header { margin-bottom: 14px; }
+  .library-section-header h3 { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 2px; }
+  .library-section-sub { font-size: 12px; color: var(--gray-500); }
   .workout-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .wc-empty { color: var(--gray-500); font-size: 13px; padding: 20px 0; }
+  .template-card { border-color: var(--accent) !important; opacity: 0.92; }
+  .template-card .workout-card-header { background: var(--navy-dark); }
+  .wc-template-badge { background: var(--accent); color: white; border-radius: 3px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
   .workout-card {
     background: var(--white);
     border-radius: 10px;
@@ -314,6 +322,8 @@
 
   /* ===== ASSIGN WORKOUT MODAL ===== */
   .assign-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+  .assign-group-label { font-size: 11px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 4px 2px; border-top: 1px solid var(--gray-200); margin-top: 4px; }
+  .assign-group-label:first-child { border-top: none; margin-top: 0; }
   .assign-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--gray-200); border-radius: 8px; cursor: pointer; transition: all 0.15s; }
   .assign-item:hover { border-color: var(--navy-light); background: var(--blue-section-light); }
   .assign-item .ai-name { font-size: 14px; font-weight: 600; color: var(--navy); }
@@ -414,11 +424,9 @@
 
     /* Library: single column */
     .workout-grid { grid-template-columns: 1fr; }
-    .library-header {
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+    .library-header { flex-wrap: wrap; gap: 10px; }
     .library-header > div { flex-wrap: wrap; gap: 6px; }
+    .library-section-header h3 { font-size: 15px; }
 
     /* Builder topbar: full-width fields */
     .builder-topbar { padding: 12px; gap: 10px; }
@@ -1017,59 +1025,137 @@ function removeFromDay(weekKey,dayKey,wid) {
 function openAssignModal(weekKey,dayKey) {
   assignState={weekKey,dayKey};
   const list=document.getElementById('assign-list');
-  const workouts=Object.values(state.workouts).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-  if(workouts.length===0) {
-    list.innerHTML='<div class="no-results" style="padding:30px">No saved workouts yet.<br><br><button class="btn btn-primary" onclick="closeAssign();newWorkout()">+ Create New Workout</button></div>';
-  } else {
-    list.innerHTML=workouts.map(w=>`
-      <div class="assign-item" onclick="assignWorkout('${w.id}')">
-        <div><div class="ai-name">${w.name||'Unnamed Workout'}</div>
-        <div class="ai-meta">Phase ${w.phase} · ${w.goal||'No goal'} · ${w.date||'No date'}</div></div>
-        <span class="pill-phase">Ph ${w.phase}</span>
-      </div>`).join('');
+  const userWorkouts=Object.values(state.workouts).filter(w=>!w.id.startsWith('prog_')).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const progGroups=[
+    {prefix:'prog_fl_', label:'🔥 Fat Loss Program'},
+    {prefix:'prog_mg_', label:'💪 Muscle Gain Program'},
+    {prefix:'prog_sp_', label:'⚡ Sport Performance Program'},
+  ];
+  const assignItem=(w,isTemplate)=>`
+    <div class="assign-item" onclick="assignWorkout('${w.id}')">
+      <div><div class="ai-name">${w.name||'Unnamed Workout'}${isTemplate?' <span style="font-size:10px;color:var(--accent);font-weight:700">TEMPLATE → copy</span>':''}</div>
+      <div class="ai-meta">Phase ${w.phase} · ${w.goal||'No goal'}</div></div>
+      <span class="pill-phase">Ph ${w.phase}</span>
+    </div>`;
+  let html='';
+  if(userWorkouts.length>0){
+    html+=`<div class="assign-group-label">My Workouts</div>${userWorkouts.map(w=>assignItem(w,false)).join('')}`;
   }
+  progGroups.forEach(g=>{
+    const ws=[];
+    for(let i=1;i<=12;i++){const w=state.workouts[g.prefix+'w'+i];if(w)ws.push(w);}
+    if(ws.length===0)return;
+    html+=`<div class="assign-group-label">${g.label}</div>${ws.map(w=>assignItem(w,true)).join('')}`;
+  });
+  if(!html) html='<div class="no-results" style="padding:30px">No saved workouts yet.<br><br><button class="btn btn-primary" onclick="closeAssign();newWorkout()">+ Create New Workout</button></div>';
+  list.innerHTML=html;
   document.getElementById('assign-title').textContent=`Assign to ${dayKey}`;
   document.getElementById('assign-modal').classList.add('open');
 }
 function closeAssign() { document.getElementById('assign-modal').classList.remove('open'); }
 function assignWorkout(wid) {
   const {weekKey,dayKey}=assignState;
+  // Auto-copy program templates so users always edit their own version
+  if (wid.startsWith('prog_')) {
+    const orig = state.workouts[wid];
+    const newId = generateId();
+    const copy = JSON.parse(JSON.stringify(orig));
+    copy.id = newId; copy.date = ''; copy.createdAt = copy.updatedAt = Date.now();
+    state.workouts[newId] = copy;
+    wid = newId;
+    toast('Template copied to your workouts!');
+  }
   if(!state.weekPlans[weekKey]) state.weekPlans[weekKey]={};
   if(!state.weekPlans[weekKey][dayKey]) state.weekPlans[weekKey][dayKey]=[];
   if(!state.weekPlans[weekKey][dayKey].includes(wid)) state.weekPlans[weekKey][dayKey].push(wid);
-  saveState(); closeAssign(); renderWeek(); toast('Workout assigned!');
+  saveState(); closeAssign(); renderWeek();
 }
 
 // ===== WORKOUT LIBRARY =====
+function workoutCardHTML(w) {
+  const isTemplate = w.id.startsWith('prog_');
+  const sectionCounts={};
+  SECTIONS.forEach(s=>{ const c=(w.exercises[s.id]||[]).length; if(c>0) sectionCounts[s.label]=c; });
+  const totalEx=Object.values(sectionCounts).reduce((a,b)=>a+b,0);
+  const sectionTags=Object.keys(sectionCounts).slice(0,3).map(s=>{
+    const short=s.replace('Activation (Core & Balance)','Activation').replace('Skill Development (Plyometric & SAQ)','Skill Dev').replace("Client's Choice","Client's Choice");
+    return `<span class="wc-section-tag">${short}</span>`;
+  }).join('');
+  const actions = isTemplate
+    ? `<button class="btn btn-accent btn-sm" onclick="useTemplate('${w.id}')">▶ Use as Template</button>`
+    : `<button class="btn btn-primary btn-sm" onclick="editWorkout('${w.id}')">✏️ Edit</button>
+       <button class="btn btn-outline btn-sm" onclick="duplicateWorkout('${w.id}')">📋 Duplicate</button>
+       <button class="btn btn-danger btn-sm" onclick="deleteWorkout('${w.id}')">🗑</button>`;
+  return `<div class="workout-card${isTemplate?' template-card':''}">
+    <div class="workout-card-header">
+      <div class="wc-name">${w.name||'Unnamed Workout'}</div>
+      <div class="wc-meta"><span>Phase ${w.phase}</span>${w.goal?`<span>${w.goal}</span>`:''}${isTemplate?'<span class="wc-template-badge">Template</span>':''}</div>
+    </div>
+    <div class="workout-card-body">
+      <div class="wc-sections">${sectionTags||'<span style="color:var(--gray-500);font-size:12px">No exercises yet</span>'}</div>
+      <div class="wc-exercise-count">${totalEx} exercise${totalEx!==1?'s':''}</div>
+    </div>
+    <div class="workout-card-actions">${actions}</div>
+  </div>`;
+}
+
 function renderLibrary() {
-  const grid=document.getElementById('workout-grid');
-  const workouts=Object.values(state.workouts).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-  let html=`<div class="new-workout-card" onclick="newWorkout()"><div class="plus">+</div><div class="label">New Workout</div></div>`;
-  workouts.forEach(w=>{
-    const sectionCounts={};
-    SECTIONS.forEach(s=>{ const c=(w.exercises[s.id]||[]).length; if(c>0) sectionCounts[s.label]=c; });
-    const totalEx=Object.values(sectionCounts).reduce((a,b)=>a+b,0);
-    const sectionTags=Object.keys(sectionCounts).slice(0,3).map(s=>{
-      const short=s.replace('Activation (Core & Balance)','Activation').replace('Skill Development (Plyometric & SAQ)','Skill Dev').replace("Client's Choice","Client's Choice");
-      return `<span class="wc-section-tag">${short}</span>`;
-    }).join('');
-    html+=`<div class="workout-card">
-      <div class="workout-card-header">
-        <div class="wc-name">${w.name||'Unnamed Workout'}</div>
-        <div class="wc-meta"><span>Phase ${w.phase}</span>${w.goal?`<span>${w.goal}</span>`:''}${w.date?`<span>${w.date}</span>`:''}</div>
-      </div>
-      <div class="workout-card-body">
-        <div class="wc-sections">${sectionTags||'<span style="color:var(--gray-500);font-size:12px">No exercises yet</span>'}</div>
-        <div class="wc-exercise-count">${totalEx} exercise${totalEx!==1?'s':''}</div>
-      </div>
-      <div class="workout-card-actions">
-        <button class="btn btn-primary btn-sm" onclick="editWorkout('${w.id}')">✏️ Edit</button>
-        <button class="btn btn-outline btn-sm" onclick="duplicateWorkout('${w.id}')">📋 Duplicate</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteWorkout('${w.id}')">🗑</button>
-      </div>
+  const grid = document.getElementById('workout-grid');
+
+  // Split workouts into program templates (ordered) and user workouts
+  const PROG_GROUPS = [
+    { prefix: 'prog_fl_',  label: '🔥 Fat Loss — 12-Week Program',          goal: 'Fat Loss' },
+    { prefix: 'prog_mg_',  label: '💪 Muscle Gain — 12-Week Program',        goal: 'Muscle Gain' },
+    { prefix: 'prog_sp_',  label: '⚡ Sport Performance — 12-Week Program',   goal: 'Sport Performance' },
+  ];
+
+  const userWorkouts = Object.values(state.workouts)
+    .filter(w => !w.id.startsWith('prog_'))
+    .sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+
+  let html = '';
+
+  // My Workouts section
+  html += `<div class="library-section">
+    <div class="library-section-header"><h3>My Workouts</h3></div>
+    <div class="workout-grid">
+      <div class="new-workout-card" onclick="newWorkout()"><div class="plus">+</div><div class="label">New Workout</div></div>
+      ${userWorkouts.map(w => workoutCardHTML(w)).join('')}
+      ${userWorkouts.length === 0 ? '<div class="wc-empty">No workouts yet. Create one above or use a program template below.</div>' : ''}
+    </div>
+  </div>`;
+
+  // Program template sections
+  PROG_GROUPS.forEach(group => {
+    const ordered = [];
+    for (let i = 1; i <= 12; i++) {
+      const w = state.workouts[group.prefix + 'w' + i];
+      if (w) ordered.push(w);
+    }
+    if (ordered.length === 0) return;
+    html += `<div class="library-section">
+      <div class="library-section-header"><h3>${group.label}</h3><span class="library-section-sub">Read-only templates — click "Use as Template" to create an editable copy</span></div>
+      <div class="workout-grid">${ordered.map(w => workoutCardHTML(w)).join('')}</div>
     </div>`;
   });
-  grid.innerHTML=html;
+
+  grid.innerHTML = html;
+}
+
+function useTemplate(id) {
+  const orig = state.workouts[id]; if (!orig) return;
+  const newId = generateId();
+  const copy = JSON.parse(JSON.stringify(orig));
+  copy.id = newId;
+  copy.name = orig.name.replace(/ — /, ' ').replace(/Ph\d+ /, ''); // strip "Ph1 " prefix
+  copy.date = new Date().toISOString().slice(0,10);
+  copy.createdAt = copy.updatedAt = Date.now();
+  state.workouts[newId] = copy;
+  saveState();
+  state.currentWorkoutId = newId;
+  document.getElementById('builder-tab').style.display = 'inline-flex';
+  showView('builder');
+  toast('Template copied — now editing your version!');
 }
 function newWorkout() {
   const id=generateId();
