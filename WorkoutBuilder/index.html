@@ -1285,7 +1285,7 @@ function renderSections() {
     div.className='workout-section'; div.id='section-'+sec.id;
     const setting=currentSetting();
     const tableRows=exercises.map((ex,i)=>{
-      const lib=EXERCISE_LIBRARY.find(e=>e.id===ex.id);
+      const lib=EXERCISE_LIBRARY.find(e=>e.id===ex.id) || EXERCISE_LIBRARY.find(e=>e.name===ex.name);
       const chk=lib?checkExerciseSetting(lib,setting):{ok:true,reason:''};
       const warnRow=chk.ok?'':`<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="background:#fff0e0;color:#b35900;border:1px solid #f0c088;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700">⚠ ${esc(chk.reason)}</span>
