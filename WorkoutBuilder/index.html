@@ -150,7 +150,7 @@
   .prog-filter-btn { background: var(--gray-200); color: var(--gray-700); border: 2px solid transparent; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
   .prog-filter-btn:hover { background: var(--blue-section-light); color: var(--navy); border-color: var(--navy-light); }
   .prog-filter-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
-  .prog-filter-label { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+  .prog-filter-label { font-size: 14px; font-weight: 700; color: var(--navy); margin-top: 20px; margin-bottom: 14px; }
   .workout-card {
     background: var(--white);
     border-radius: 10px;
@@ -975,6 +975,7 @@ function showView(v) {
   document.querySelectorAll('.nav-tab').forEach(el=>{
     if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes("'"+v+"'")) el.classList.add('active');
   });
+  try { localStorage.setItem('nasm_opt_last_view', v); } catch(e) {}
   if(v==='week') renderWeek();
   if(v==='library') renderLibrary();
   if(v==='builder') renderBuilder();
@@ -2520,7 +2521,15 @@ function migrateProgramNames() {
 }
 
 // ===== INIT =====
-loadState(); seedWeek1FatLoss(); seedProgramLibrary(); migrateProgramNames(); renderWeek();
+loadState(); seedWeek1FatLoss(); seedProgramLibrary(); migrateProgramNames();
+try {
+  const lastView = localStorage.getItem('nasm_opt_last_view');
+  if (lastView === 'library') { showView('library'); }
+  else if (lastView === 'builder' && state.currentWorkoutId && state.workouts[state.currentWorkoutId]) {
+    document.getElementById('builder-tab').style.display = 'inline-flex';
+    showView('builder');
+  } else { renderWeek(); }
+} catch(e) { renderWeek(); }
 
 // ===== FIREBASE =====
 const firebaseConfig = {
