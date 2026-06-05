@@ -146,6 +146,11 @@
   .template-card { border-color: var(--accent) !important; opacity: 0.92; }
   .template-card .workout-card-header { background: var(--navy-dark); }
   .wc-template-badge { background: var(--accent); color: white; border-radius: 3px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
+  .prog-filter-bar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .prog-filter-btn { background: var(--gray-200); color: var(--gray-700); border: 2px solid transparent; border-radius: 8px; padding: 8px 18px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .prog-filter-btn:hover { background: var(--blue-section-light); color: var(--navy); border-color: var(--navy-light); }
+  .prog-filter-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .prog-filter-label { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
   .workout-card {
     background: var(--white);
     border-radius: 10px;
@@ -427,6 +432,7 @@
     .library-header { flex-wrap: wrap; gap: 10px; }
     .library-header > div { flex-wrap: wrap; gap: 6px; }
     .library-section-header h3 { font-size: 15px; }
+    .prog-filter-btn { padding: 7px 12px; font-size: 12px; }
 
     /* Builder topbar: full-width fields */
     .builder-topbar { padding: 12px; gap: 10px; }
@@ -1099,47 +1105,56 @@ function workoutCardHTML(w) {
   </div>`;
 }
 
+const PROG_GROUPS = [
+  { key: 'fl', prefix: 'prog_fl_', label: '🔥 Fat Loss',          fullLabel: '🔥 Fat Loss | 12-Workout Program' },
+  { key: 'mg', prefix: 'prog_mg_', label: '💪 Muscle Gain',        fullLabel: '💪 Muscle Gain | 12-Workout Program' },
+  { key: 'sp', prefix: 'prog_sp_', label: '⚡ Sport Performance',   fullLabel: '⚡ Sport Performance | 12-Workout Program' },
+];
+let activeProgram = 'fl';
+
 function renderLibrary() {
   const grid = document.getElementById('workout-grid');
-
-  // Split workouts into program templates (ordered) and user workouts
-  const PROG_GROUPS = [
-    { prefix: 'prog_fl_',  label: '🔥 Fat Loss — 12-Week Program',          goal: 'Fat Loss' },
-    { prefix: 'prog_mg_',  label: '💪 Muscle Gain — 12-Week Program',        goal: 'Muscle Gain' },
-    { prefix: 'prog_sp_',  label: '⚡ Sport Performance — 12-Week Program',   goal: 'Sport Performance' },
-  ];
 
   const userWorkouts = Object.values(state.workouts)
     .filter(w => !w.id.startsWith('prog_'))
     .sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
 
-  let html = '';
+  const activeGroup = PROG_GROUPS.find(g => g.key === activeProgram);
+  const programWorkouts = [];
+  for (let i = 1; i <= 12; i++) {
+    const w = state.workouts[activeGroup.prefix + 'w' + i];
+    if (w) programWorkouts.push(w);
+  }
 
-  // My Workouts section
-  html += `<div class="library-section">
-    <div class="library-section-header"><h3>My Workouts</h3></div>
-    <div class="workout-grid">
-      <div class="new-workout-card" onclick="newWorkout()"><div class="plus">+</div><div class="label">New Workout</div></div>
-      ${userWorkouts.map(w => workoutCardHTML(w)).join('')}
-      ${userWorkouts.length === 0 ? '<div class="wc-empty">No workouts yet. Create one above or use a program template below.</div>' : ''}
+  const filterButtons = PROG_GROUPS.map(g => `
+    <button class="prog-filter-btn${g.key === activeProgram ? ' active' : ''}" onclick="setActiveProgram('${g.key}')">${g.label}</button>
+  `).join('');
+
+  let html = `
+    <div class="library-section">
+      <div class="library-section-header"><h3>My Workouts</h3></div>
+      <div class="workout-grid">
+        <div class="new-workout-card" onclick="newWorkout()"><div class="plus">+</div><div class="label">New Workout</div></div>
+        ${userWorkouts.map(w => workoutCardHTML(w)).join('')}
+        ${userWorkouts.length === 0 ? '<div class="wc-empty">No workouts yet — create one above or use a program template below.</div>' : ''}
+      </div>
     </div>
-  </div>`;
-
-  // Program template sections
-  PROG_GROUPS.forEach(group => {
-    const ordered = [];
-    for (let i = 1; i <= 12; i++) {
-      const w = state.workouts[group.prefix + 'w' + i];
-      if (w) ordered.push(w);
-    }
-    if (ordered.length === 0) return;
-    html += `<div class="library-section">
-      <div class="library-section-header"><h3>${group.label}</h3><span class="library-section-sub">Read-only templates — click "Use as Template" to create an editable copy</span></div>
-      <div class="workout-grid">${ordered.map(w => workoutCardHTML(w)).join('')}</div>
+    <div class="library-section">
+      <div class="library-section-header">
+        <h3>Program Templates</h3>
+        <span class="library-section-sub">Read-only — click "Use as Template" to create an editable copy</span>
+      </div>
+      <div class="prog-filter-bar">${filterButtons}</div>
+      <div class="prog-filter-label">${activeGroup.fullLabel}</div>
+      <div class="workout-grid">${programWorkouts.map(w => workoutCardHTML(w)).join('')}</div>
     </div>`;
-  });
 
   grid.innerHTML = html;
+}
+
+function setActiveProgram(key) {
+  activeProgram = key;
+  renderLibrary();
 }
 
 function useTemplate(id) {
