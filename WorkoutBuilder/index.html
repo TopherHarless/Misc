@@ -479,6 +479,92 @@
     #toast-container { bottom: 16px; right: 12px; left: 12px; }
     .toast { font-size: 13px; }
   }
+
+  /* ===== EXERCISE LIBRARY TAB ===== */
+  #view-exercises {
+    --lb:#0f1117;--ls:#1a1d27;--ls2:#22263a;--lbr:#2e3352;
+    --la:#6c63ff;--lt:#e8eaf6;--lt2:#8892b0;--lt3:#4a5568;
+    --lgreen:#22c55e;
+    background:var(--lb);color:var(--lt);font-family:'Inter',system-ui,sans-serif;height:calc(100vh - 56px);
+  }
+  #view-exercises.active{display:flex!important;flex-direction:column}
+  .lib-header{background:var(--ls);border-bottom:1px solid var(--lbr);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+  #libSearchBox{flex:1;min-width:160px;background:var(--ls2);border:1px solid var(--lbr);border-radius:8px;padding:7px 12px;color:var(--lt);font-size:14px;outline:none}
+  #libSearchBox::placeholder{color:var(--lt3)}
+  #libSearchBox:focus{border-color:var(--la)}
+  .lib-header-count{font-size:12px;color:var(--lt2);white-space:nowrap}
+  .lib-layout{display:flex;flex:1;overflow:hidden}
+  .lib-sidebar{width:252px;min-width:252px;background:var(--ls);border-right:1px solid var(--lbr);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;flex-shrink:0}
+  .lib-fs h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--lt2);margin-bottom:7px;font-weight:600}
+  .lib-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .lib-chip{display:inline-flex;align-items:center;height:27px;padding:0 10px;border-radius:20px;border:1px solid var(--lbr);background:var(--ls2);color:var(--lt2);cursor:pointer;font-size:12px;transition:all .15s;user-select:none}
+  .lib-chip:hover{border-color:var(--la);color:var(--lt)}
+  .lib-chip.active{background:var(--la);border-color:var(--la);color:#fff;font-weight:600}
+  .lib-clear{font-size:11px;color:var(--lt3);cursor:pointer;background:none;border:none;padding:0;text-decoration:underline}
+  .lib-clear:hover{color:var(--la)}
+  .lib-main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+  .lib-toolbar{padding:9px 14px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--lbr);background:var(--ls);flex-shrink:0;flex-wrap:wrap}
+  .lib-vbtn{background:var(--ls2);border:1px solid var(--lbr);color:var(--lt2);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;transition:all .15s}
+  .lib-vbtn.active,.lib-vbtn:hover{background:var(--la);border-color:var(--la);color:#fff}
+  .lib-tc{font-size:12px;color:var(--lt2);margin-left:auto}
+  .lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(256px,1fr));gap:10px;padding:14px}
+  .lib-card{background:var(--ls);border:1px solid var(--lbr);border-radius:8px;padding:13px;display:flex;flex-direction:column;gap:7px;transition:border-color .15s;cursor:pointer}
+  .lib-card:hover{border-color:var(--la)}
+  .lib-thumb{width:calc(100% + 26px);aspect-ratio:16/9;object-fit:cover;display:block;margin:-13px -13px 10px;border-radius:8px 8px 0 0;background:var(--ls2)}
+  .lib-name{font-weight:600;font-size:14px;color:var(--lt);line-height:1.3}
+  .lib-muscles{font-size:11px;color:var(--lt2);margin-top:-2px}
+  .lib-tags{display:flex;flex-wrap:wrap;gap:4px}
+  .lib-tag{font-size:10px;padding:2px 6px;border-radius:10px;border:1px solid;font-weight:500}
+  .lts{background:rgba(108,99,255,.15);color:#a8a4ff;border-color:rgba(108,99,255,.3)}
+  .ltp{background:rgba(34,197,94,.1);color:#4ade80;border-color:rgba(34,197,94,.25)}
+  .lte{background:rgba(245,158,11,.1);color:#fcd34d;border-color:rgba(245,158,11,.25)}
+  .lib-addbtn{background:var(--ls2);border:1px solid var(--lbr);color:var(--lt2);border-radius:4px;padding:5px;font-size:12px;cursor:pointer;width:100%;transition:all .15s;text-align:center;margin-top:2px}
+  .lib-addbtn:hover{background:var(--la);border-color:var(--la);color:#fff}
+  .lib-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--lt3);text-align:center;gap:8px}
+  /* lib table view */
+  .lib-tw{padding:0 14px 14px;overflow-x:auto}
+  .lib-tbl{width:100%;border-collapse:collapse;font-size:13px;color:var(--lt)}
+  .lib-tbl th{text-align:left;padding:9px 10px;color:var(--lt2);font-size:11px;font-weight:600;text-transform:uppercase;border-bottom:1px solid var(--lbr);background:var(--ls);position:sticky;top:0;z-index:10}
+  .lib-tbl td{padding:9px 10px;border-bottom:1px solid var(--lbr);vertical-align:middle}
+  .lib-tbl tr:hover td{background:var(--ls2)}
+  /* lib detail modal */
+  #libModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:center;justify-content:center;padding:20px}
+  #libModal.open{display:flex}
+  .lib-mc{background:var(--ls);border:1px solid var(--lbr);border-radius:12px;max-width:560px;width:100%;max-height:84vh;overflow-y:auto;padding:22px;color:var(--lt)}
+  .lib-mh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+  .lib-mt{font-size:19px;font-weight:700}
+  .lib-mx{background:none;border:none;color:var(--lt2);font-size:22px;cursor:pointer;line-height:1;padding:0}
+  .lib-ms{margin-bottom:13px}
+  .lib-ms h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--lt2);margin-bottom:5px;font-weight:600}
+  .lib-ms p,.lib-ms li{font-size:13px;color:var(--lt);line-height:1.6}
+  .lib-ms ol{padding-left:16px}
+  .lib-notes{background:var(--ls2);border:1px solid var(--lbr);border-radius:8px;padding:11px;font-size:13px;color:var(--lt);line-height:1.6}
+  .lib-vlink{display:inline-flex;align-items:center;gap:6px;color:#ff6584;border:1px solid var(--lbr);border-radius:6px;padding:6px 12px;font-size:13px;text-decoration:none;margin-top:2px}
+  .lib-vlink:hover{border-color:#ff6584}
+  .lib-mab{background:var(--la);border:none;color:#fff;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
+  .lib-mab:hover{opacity:.9}
+  /* section picker */
+  #libPicker{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;align-items:center;justify-content:center;padding:20px}
+  #libPicker.open{display:flex}
+  .lib-pk{background:#fff;border-radius:12px;padding:22px;max-width:360px;width:100%}
+  .lib-pk h3{margin-bottom:6px;font-size:16px;color:#1a3a6b}
+  .lib-pk p{font-size:12px;color:#8a96a3;margin-bottom:14px}
+  .lib-pk select{width:100%;padding:8px;border:1px solid var(--gray-300);border-radius:6px;font-size:14px;margin-bottom:14px;outline:none}
+  .lib-pk-btns{display:flex;gap:8px}
+  .lib-pk-btns button{flex:1;border-radius:6px;padding:9px;cursor:pointer;font-size:14px;font-weight:600;border:none}
+  /* mobile filter */
+  #libFiltOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
+  #libFiltOverlay.open{display:block}
+  .lib-mfbtn{display:none;align-items:center;gap:6px;background:var(--ls2);border:1px solid var(--lbr);color:var(--lt);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px}
+  .lib-fbadge{background:var(--la);color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:700}
+  @media(max-width:768px){
+    .lib-sidebar{position:fixed;bottom:0;left:0;right:0;width:100%;max-height:82vh;min-width:0;border-right:none;border-top:1px solid var(--lbr);border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:200;overflow-y:auto}
+    .lib-sidebar.open{transform:translateY(0)}
+    .lib-mfbtn{display:flex}
+    .lib-grid{grid-template-columns:1fr}
+    .lib-tc{display:none}
+    .lib-header-count{display:none}
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -494,6 +580,7 @@
     <button class="nav-tab active" onclick="showView('week')">📅 Week Planner</button>
     <button class="nav-tab" onclick="showView('library')">📋 Workout Library</button>
     <button class="nav-tab" id="builder-tab" onclick="showView('builder')" style="display:none">✏️ Edit Workout</button>
+    <button class="nav-tab" onclick="showView('exercises')">📚 Exercise Library</button>
   </div>
   <div id="auth-area" style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0">
     <span id="auth-user" style="font-size:13px;color:rgba(255,255,255,0.75);white-space:nowrap;overflow:hidden;max-width:160px;text-overflow:ellipsis"></span>
@@ -596,6 +683,85 @@
     </div>
   </div>
 
+</div>
+
+<!-- EXERCISE LIBRARY VIEW -->
+<div id="view-exercises" class="view">
+  <div class="lib-header">
+    <input id="libSearchBox" type="text" placeholder="Search exercises, muscles, notes…" autocomplete="off">
+    <span class="lib-header-count"><b id="libVisibleCount">0</b> of <b id="libTotalCount">0</b> exercises</span>
+  </div>
+  <div id="libFiltOverlay" onclick="libCloseMobileFilters()"></div>
+  <div class="lib-layout">
+    <aside class="lib-sidebar" id="libSidebar">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--lt2);font-weight:600">Filters</span>
+        <button class="lib-clear" onclick="libClearAll()">Clear all</button>
+      </div>
+      <div class="lib-fs">
+        <h4>Section</h4>
+        <div class="lib-chips" id="libSectionChips"></div>
+      </div>
+      <div class="lib-fs">
+        <h4>OPT Phase</h4>
+        <div class="lib-chips" id="libPhaseChips">
+          <div class="lib-chip" onclick="libToggle('phases',1,this)">Phase 1</div>
+          <div class="lib-chip" onclick="libToggle('phases',2,this)">Phase 2</div>
+          <div class="lib-chip" onclick="libToggle('phases',3,this)">Phase 3</div>
+          <div class="lib-chip" onclick="libToggle('phases',4,this)">Phase 4</div>
+          <div class="lib-chip" onclick="libToggle('phases',5,this)">Phase 5</div>
+        </div>
+      </div>
+      <div class="lib-fs">
+        <h4>Equipment</h4>
+        <div class="lib-chips" id="libEquipChips"></div>
+      </div>
+      <div class="lib-fs">
+        <h4>Category</h4>
+        <div class="lib-chips" id="libSubChips"></div>
+      </div>
+      <div class="lib-fs">
+        <h4>Media</h4>
+        <div class="lib-chips">
+          <div class="lib-chip" id="libVideoChip" onclick="libToggleVideo()">▶ Has Video</div>
+        </div>
+      </div>
+    </aside>
+    <main class="lib-main">
+      <div class="lib-toolbar">
+        <button class="lib-mfbtn" onclick="libToggleMobileFilters()">⊟ Filters <span class="lib-fbadge" id="libFBadge" style="display:none">0</span></button>
+        <button class="lib-vbtn active" id="libBtnGrid" onclick="libSetView('grid')">⊞ Grid</button>
+        <button class="lib-vbtn" id="libBtnTable" onclick="libSetView('table')">☰ Table</button>
+        <span class="lib-tc" id="libTc"></span>
+      </div>
+      <div id="libContainer"></div>
+    </main>
+  </div>
+</div>
+
+<!-- LIBRARY DETAIL MODAL -->
+<div id="libModal" onclick="libCloseModal(event)">
+  <div class="lib-mc" id="libModalContent"></div>
+</div>
+
+<!-- LIBRARY SECTION PICKER -->
+<div id="libPicker">
+  <div class="lib-pk">
+    <h3>Add to Workout</h3>
+    <p id="libPickerName"></p>
+    <select id="libPickerSec">
+      <option value="warmup">Warm-Up</option>
+      <option value="activation">Activation</option>
+      <option value="skilldevelopment">Skill Development</option>
+      <option value="resistance" selected>Resistance Training</option>
+      <option value="clientschoice">Client's Choice</option>
+      <option value="cooldown">Cool-Down</option>
+    </select>
+    <div class="lib-pk-btns">
+      <button onclick="libConfirmAdd()" style="background:var(--navy);color:#fff">Add</button>
+      <button onclick="document.getElementById('libPicker').classList.remove('open')" style="background:var(--gray-200);color:var(--navy)">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <!-- EXERCISE PICKER MODAL -->
@@ -1134,6 +1300,7 @@ function showView(v) {
   if(v==='week') renderWeek();
   if(v==='library') renderLibrary();
   if(v==='builder') renderBuilder();
+  if(v==='exercises') { if(!libInited){libInit();libInited=true;}else libApply(); }
 }
 
 // ===== WEEK PLANNER =====
@@ -2757,6 +2924,232 @@ function saveToFirestore() {
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }).catch(e => console.error('Firestore save error:', e));
 }
+
+// ===== EXERCISE LIBRARY TAB =====
+let libInited = false;
+let libPickerEx = null;
+const libSt = {
+  search:'', sections:new Set(), phases:new Set(), equip:new Set(), subs:new Set(), view:'grid', hasVideo:false
+};
+const LIB_SEC = {warmup:'Warm-Up',activation:'Activation',skilldevelopment:'Skill Dev.',resistance:'Resistance',clientschoice:"Client's Choice",cooldown:'Cool-Down'};
+const LIB_EQ = {foam_roller:'Foam Roller',dumbbell:'Dumbbells',pullup_bar:'Pull-Up Bar',barbell:'Barbell',machine:'Machine',cable:'Cable',bench:'Bench',kettlebell:'Kettlebell',med_ball:'Med Ball',stability_ball:'Stability Ball',box:'Box',cone:'Cones',agility_ladder:'Agility Ladder',bands:'Bands',cardio_machine:'Cardio Machine',battle_ropes:'Battle Ropes',jump_rope:'Jump Rope',ez_bar:'EZ Bar'};
+
+const NASM_PATCH = {"barbell bench press":{"videoUrl":"https://www.youtube.com/watch?v=CayG6UYqL8g","thumbnailUrl":"https://img.youtube.com/vi/CayG6UYqL8g/hqdefault.jpg","steps":["Lie supine on your back with neutral spine on a bench with your feet straight and flat on the floor. Draw in and brace the abs and lock the shoulders blades back and down on the bench. Grasp the barbell at about 1.5 - 2x shoulder width ensuring the hands are evenly distributed on the bar.","Unrack the bar (always use a spotter if you are able) bringing it directly above the shoulders. Starting with arms extended, slowly lower the bar toward the mid to lower chest moving through the maximum comfortable range.","Reverse the pattern and return the starting position.","Repeat. Maintain posture throughout. Do not arch the back or jut the head forward. Avoid letting the shoulders round, posture shift or feet lift in the air. Keep the elbows under the bar to maintain balance at all times."]},"incline barbell bench press":{"videoUrl":"https://www.youtube.com/watch?v=BjGLs6KGWUc","thumbnailUrl":"https://img.youtube.com/vi/BjGLs6KGWUc/hqdefault.jpg","steps":["Lie supine on your back with neutral spine on an incline bench with your feet straight and flat on the floor. Draw in and brace the abs and lock the shoulders blades back and down on the bench. Grasp the barbell at about 1.5 - 2x shoulder width ensuring the hands are evenly distributed on the bar.","Unrack the bar (always use a spotter if you are able) bringing it directly above the shoulders.","Starting with arms extended, slowly lower the bar toward the chest moving through the maximum comfortable range.","Reverse the pattern and return the starting position. Repeat. Maintain posture throughout. Do not arch the back or jut the head forward. Avoid letting the shoulders round, posture shift or feet lift in the air. Keep the elbows under the bar to maintain balance at all times."]},"cable crossover":{"videoUrl":"https://www.youtube.com/watch?v=XY6JrX1wyxk","thumbnailUrl":"https://img.youtube.com/vi/XY6JrX1wyxk/hqdefault.jpg","steps":["Ensure cables are adjusted at chest height. Stand with your back toward the cable machine. Grab the handles and hold them out to the side of your body with your palms facing forward. Draw in and brace your abs. Lock shoulder blades back and down.","Drive the hands forward and together in an arcing motion allowing the hands to pass with one hand above and one below.","Reverse the pattern and return to the starting position moving through a maximum range of motion that technique can be maintained.","Repeat, alternating the top/bottom hand. Maintain posture throughout. Avoid arching or slouching the back, jutting the chin forward, slouching or shrugging the shoulders."]},"pushup":{"videoUrl":"https://www.youtube.com/watch?v=WDIpL0pjun0","thumbnailUrl":"https://img.youtube.com/vi/WDIpL0pjun0/hqdefault.jpg","steps":["Assume a push up position with the body in a straight line from head to heel, feet hip to shoulder width and hands 1.5-2x shoulder width. Brace the core and tighten the glutes. Press away from the floor to prevent the shoulder blades from winging.","Lower the chest toward the floor through a maximum range of motion until the chest is a few inches off the floor or shoulders have reached elbow depth.","Reverse the pattern and return to starting position.","Repeat. Maintain posture throughout. Keep the shoulders from elevating or rounding. Do not let the back round or arch or the hips sag or pike. Avoid letting the head jut forward."]},"decline pushup":{"videoUrl":"https://www.youtube.com/watch?v=DBz85WuXqMk","thumbnailUrl":"https://img.youtube.com/vi/DBz85WuXqMk/hqdefault.jpg","steps":["Assume a push up position with the body in a straight line from head to heel, feet hip to shoulder width elevated on a bench, and hands 1.5-2x shoulder width. Brace the core and tighten the glutes. Press away from the floor to prevent the shoulder blades from winging.","Lower the chest and head toward the floor through a maximum range of motion until the head is approximately one inch off the floor or shoulders have reached elbow depth.","Reverse the pattern and return to starting position.","Repeat. Maintain posture throughout. Keep the shoulders from elevating or rounding. Do not let the back round or arch or the hips sag or pike. Avoid letting the head jut forward."]},"incline pushup":{"videoUrl":"https://www.youtube.com/watch?v=0JUrOH--Kdk","thumbnailUrl":"https://img.youtube.com/vi/0JUrOH--Kdk/hqdefault.jpg","steps":["Assume a push up position with the body in a straight line from head to heel, feet hip to shoulder width, and hands 1.5-2x shoulder width elevated on a bench. Brace the core and tighten the glutes. Press away from the floor to prevent the shoulder blades from winging.","Lower the chest toward the bench through a maximum range of motion until the chest is approximately a few inches off the floor or shoulders have reached elbow depth.","Reverse the pattern and return to starting position.","Repeat. Maintain posture throughout. Keep the shoulders from elevating or rounding. Do not let the back round or arch or the hips sag or pike. Avoid letting the head jut forward."]},"plyometric pushup":{"videoUrl":"https://www.youtube.com/watch?v=MH4gcTKQiEc","thumbnailUrl":"https://img.youtube.com/vi/MH4gcTKQiEc/hqdefault.jpg","steps":["Assume a push up position with the body in a straight line from head to heel, feet hip to shoulder width and hands 1.5-2x shoulder width. Brace the core and tighten the glutes. Press away from the floor to prevent the shoulder blades from winging.","Rapidly lower the chest toward the floor through a maximum range of motion until the chest is a few inches off the floor or shoulders have reached elbow depth.","Explosively reverse the pattern creating enough momentum to leave the ground.","As the hand lift off the floor, bring them together performing a clap and then land on the floor as softly as possible.","Repeat immediately. Maintain posture throughout. Keep the shoulders from elevating or rounding. Do not let the back round or arch or the hips sag or pike. Avoid jutting the head forward."]},"machine chest press":{"videoUrl":"https://www.youtube.com/watch?v=lRo9zZ7EwpM","thumbnailUrl":"https://img.youtube.com/vi/lRo9zZ7EwpM/hqdefault.jpg","steps":["Adjust machine so that handles are at lower chest height. Ensure posture is tall and core is braced.","Depress the foot lever to bring the arms forward and grasp handles approximately 1.5x shoulder width. Release foot lever.","Slowly press forward until the arms are completely extended.","Reverse the pattern and return to the starting position moving through a maximum, comfortable range of motion that technique can be maintained.","Repeat. Keep shoulders down, chin from jutting forward and back from arching or rounding."]},"barbell deadlift":{"videoUrl":"https://www.youtube.com/watch?v=Z6gcRfPNcZo","thumbnailUrl":"https://img.youtube.com/vi/Z6gcRfPNcZo/hqdefault.jpg","steps":["Stand in athletic posture with feet hip to shoulder width apart and toes pointing forward. Hinge at the hips and slightly bend the knees to grab onto the barbell with hands slightly wider than shins. Brace the abs and position the bar over midfoot.","With the back flat and bar close to the shins and thigh, push into the floor to lift the bar. Maintain the head and torso angle until the bar passes the knees then stand upright.","Reverse the pattern, hinging at the hips to initiate, to return the bar to its starting position.","Repeat for the desired number of repetitions. Avoid rounding the spine, over emphasizing the knee bend, losing head position or rounding the shoulders."]},"romanian deadlift dumbbell":{"videoUrl":"https://www.youtube.com/watch?v=V8Hdl1FiNt4","thumbnailUrl":"https://img.youtube.com/vi/V8Hdl1FiNt4/hqdefault.jpg","steps":["Stand in athletic posture with your feet hip to shoulder width, toes pointing straight ahead and knees unlocked. Hinge at the hips and bend the knees to grab onto the dumbbells and stand. Brace the abs and lock the shoulder blades back and down.","Hold the dumbbells in front of your thighs. Hinge at the hips and lower the dumbbells through a maximum range that you can maintain good posture. Keep the back flat and dumbbells close to the body at all times.","Reverse the pattern pushing the hips forward to return to the starting position. Maintain posture throughout.","Repeat for the desired number of repetitions. Avoid locking knees, slouching or over arching the lower and upper back. Keep the head in line with the back at all times."]},"pullup":{"videoUrl":"https://www.youtube.com/watch?v=9yVGh3XbJ34","thumbnailUrl":"https://img.youtube.com/vi/9yVGh3XbJ34/hqdefault.jpg","steps":["Grab the pull-up bar with a 1-1.5x shoulder width grip, palms facing away from you. Draw in and brace the abs. Slightly pack the shoulders back and down.","Pull the body upward driving the chest toward the bar/handles until the arms/elbows are packed into the side of the body. Drive the shoulder blades back and down as you do.","Reverse the pattern and return to starting position.","Repeat. Maintain posture throughout. Avoid shrugging the shoulders, arching the lower back, swinging, jutting the head forward or not fully extending the elbows on the descent."]},"assisted pullup band":{"videoUrl":"https://www.youtube.com/watch?v=B_VkNQS5YLs","thumbnailUrl":"https://img.youtube.com/vi/B_VkNQS5YLs/hqdefault.jpg","steps":["Set and secure a band on the device to promote the assistance needed for your desired repetitions. Grab the pull up bar with a 1-1.5x shoulder width grip, palms facing away from you. Draw in and brace the abs. Slightly pack the shoulders back and down.","Step into the band. Pull the body upward driving the chest toward the bar/handles until the arms/elbows are packed into the side of the body. Drive the shoulder blades back and down as you do.","Reverse the pattern and return to starting position. Repeat. Maintain posture throughout. Avoid shrugging the shoulders, arching the lower back, swinging, jutting the head forward or not fully extending the elbows on the descent."]},"face pull":{"videoUrl":"https://www.youtube.com/watch?v=eTCBSFlCJ_s","thumbnailUrl":"https://img.youtube.com/vi/eTCBSFlCJ_s/hqdefault.jpg","steps":["Position the cable slightly above the head and grasp the rope with the thumbs pointing toward you. Stand tall with your feet slightly staggered and toes pointing straight ahead. Draw your abs.","Pull the cable toward your face by bending your elbows out to the side and pinching your shoulder blades together attempting to drive your fists by your ears.","Reverse the pattern and return to the starting position.","Repeat. Maintain posture throughout. Avoid jutting the chin forward, arching the lower back, letting the ribs flare, or shrugging the shoulders."]},"good morning":{"videoUrl":"https://www.youtube.com/watch?v=Daq-wJMUnes","thumbnailUrl":"https://img.youtube.com/vi/Daq-wJMUnes/hqdefault.jpg","steps":["Stand in athletic posture with your feet hip to shoulder width, toes pointing straight ahead and knees unlocked.","Rack barbell across the upper back and maintain a slightly wider than shoulder width grip on the bar. Brace the abs and lock the shoulder blades back and down.","Hinge at the hips and descend through a maximum range that you can maintain good posture. Keep the back flat and core braced at all times.","Reverse the pattern pushing the hips forward to return to the starting position. Maintain posture throughout.","Repeat for the desired number of repetitions. Avoid locking knees, slouching or over arching the lower and upper back. Keep the head in line with the back at all times."]},"pike pushup":{"videoUrl":"https://www.youtube.com/watch?v=2b5t0Cu2nQI","thumbnailUrl":"https://img.youtube.com/vi/2b5t0Cu2nQI/hqdefault.jpg","steps":["Position yourself on the floor similar to a down dog yoga set up (modified push up position with the tailbone piked up to the ceiling and arms and legs extended). Hands approximately 1-1.5x shoulder width, head in line with a neutral spine and toes pointing straight ahead. Draw in and brace the abs. Press away from the floor to stabilize the shoulder. Bend the knees as needed to ensure neutral spine.","Slowly lower yourself toward the floor, bending the arms out to the side driving the top of the forehead toward an imaginary line between your finger tips until you are about 1 inch from the floor.","Reverse the pattern and return to the starting position.","Repeat. Maintain posture throughout. Avoid arching or slouching the back, collapsing or overly shrugging the shoulders, jutting the head forward, or pulling the inside of the palms off the ground."]},"bench dip":{"videoUrl":"https://www.youtube.com/watch?v=WVeZDBhZwLA","thumbnailUrl":"https://img.youtube.com/vi/WVeZDBhZwLA/hqdefault.jpg","steps":["Position yourself just off the edge of the bench with hands shoulder width apart on the edge in good posture. Knees at 90°. Draw in and brace the abs. Lock the shoulder blades back and down.","Slowly lower your body by bending at the elbows and shoulders until your arm at the forearms creates a 90-degree angle. Maintain posture throughout.","Repeat. Avoid jutting the chin forward, letting the shoulders round forward or shrug, or letting the back round."]},"goblet squat":{"videoUrl":"https://www.youtube.com/watch?v=nfX7IFK9UNI","thumbnailUrl":"https://img.youtube.com/vi/nfX7IFK9UNI/hqdefault.jpg","steps":["Stand in athletic posture with feet hip to shoulder width apart and toes forward. Draw in and brace the abs. Pull the shoulder blades back and down and lock the elbows into the side of the body.","Drive the hips back and squat down to a maximum depth that posture and alignment can be maintained (typically between 90° at the knee and thigh parallel to the floor). Keep the weight balanced from heel to ball of foot.","Reverse the pattern and return to the starting position. Maintain posture throughout.","Repeat for the desired number of repetitions. Avoid slouching the back or shoulders, letting the elbows flare out, knees caving in or toes turning out."]},"leg press":{"videoUrl":"https://www.youtube.com/watch?v=cDGOn-yfKJA","thumbnailUrl":"https://img.youtube.com/vi/cDGOn-yfKJA/hqdefault.jpg","steps":["Sit in the leg press machine with feet hip to shoulder width apart and straight ahead on the leg press platform. Ensure foot height placement allows for good range of movement at both the hip and knee. Draw in and brace the abs. Lock the shoulder blades back and down. Stabilize the upper body by grasping the handles.","Lower the platform down toward the body ensuring the knees stay aligned with the middle toes and weight is distributed evenly across the foot. Move through a maximum range without losing technique or bottoming out the thighs into the rib cage.","Reverse the pattern and return to starting position.","Repeat. Maintain posture throughout. Avoid locking the knees, bouncing at the bottom of the movement to create momentum, rounding the spine or letting the hips come off the pad, or collapsing the knees inward."]},"side plank":{"videoUrl":"https://www.youtube.com/watch?v=44ND4bOB-T0","thumbnailUrl":"https://img.youtube.com/vi/44ND4bOB-T0/hqdefault.jpg","steps":["Lie on your side with the feet stacked, toes pulled toward the nose and forearm on the ground with elbow under the shoulder. Draw in the belly button, brace the abs, and squeeze the glute muscles.","Lift the body off of the floor and form a straight line from head to heel.","Reverse the pattern and return to the starting position. Maintain posture throughout.","Repeat for the desired number of repetitions or time. Avoid pointing the toes, shoulder blade collapsing, body twisting or chin jutting forward."]},"dead bug":{"videoUrl":"https://www.youtube.com/watch?v=bxn9FBrt4-A","thumbnailUrl":"https://img.youtube.com/vi/bxn9FBrt4-A/hqdefault.jpg","steps":["Lie supine on the floor with your arms and legs extended behind and in front of you. Draw in your abs.","Slowly and simultaneously lift your opposite arm and leg bringing the arm above the shoulder and knee above your hip at 90° angles.","Reverse the pattern and return to the starting position.","Repeat on the other side. Maintain posture throughout. Avoid arching the back, letting the ribs flare or body rotate."]},"russian twist":{"videoUrl":"https://www.youtube.com/watch?v=s0kT80JLCfA","thumbnailUrl":"https://img.youtube.com/vi/s0kT80JLCfA/hqdefault.jpg","steps":["Lie with upper back and head supported on a stability ball with good posture and feet hip width apart. Extend arms overhead and place hands together.","Starting in a bridged position, lock the arms and shoulder together as a unit and drive the hands and chest to the side rotating the body and rolling the ball backwards until you are on the side of your shoulder. Keep the hips bridged at all times.","Reverse the pattern and return to the starting position.","Repeat on the other side. Maintain posture throughout. Ensure balance, posture and control of the stability ball are maintained. Avoid turning the feet, dropping the hips, or using momentum."]},"bird dog":{"videoUrl":"https://www.youtube.com/watch?v=ZdAHe9_HeEw","thumbnailUrl":"https://img.youtube.com/vi/ZdAHe9_HeEw/hqdefault.jpg","steps":["Get into quadruped position (on all fours) with the hands under the shoulders and knees under the hips. Press away from the floor with the arms to stabilize shoulder girdle. Draw the abs in. Position spine in neutral.","Slowly reach one arm and the opposite leg with toes pointed away from the body. Reach long for the walls attempting to get the body in a straight line.","Reverse the pattern and return the starting position sweeping the hand and knee into position.","Repeat with the other side. Maintain posture throughout. Avoid letting the head fall to the ground, back arch or slouch, shoulder collapse or torso rotate."]},"jump squat":{"videoUrl":"https://www.youtube.com/watch?v=tZSYZdtbONc","thumbnailUrl":"https://img.youtube.com/vi/tZSYZdtbONc/hqdefault.jpg","steps":["Stand with your feet hip to shoulder width apart and toes pointing straight ahead. Draw in the belly button.","Rapidly descend to a depth that feels explosive (typically around a quarter squat) while pulling the arms back to the side.","Quickly and powerfully reverse the pattern and jump up, raising the arms above the head. Land as quietly as possible and immediately begin the next repetition. Maintain posture throughout.","Repeat for the desired number of repetitions. Avoid knees collapsing inward, back arching or slouching, or uncontrolled head movement."]},"box jump":{"videoUrl":"https://www.youtube.com/watch?v=DXu-8TAJwi4","thumbnailUrl":"https://img.youtube.com/vi/DXu-8TAJwi4/hqdefault.jpg","steps":["Stand with your feet hip to shoulder width apart and toes pointing straight ahead. Draw in the belly button.","Rapidly descend to a depth that feels explosive (typically around a quarter squat) while pulling the arms back to the side.","Quickly and powerfully reverse the pattern and jump up and forward, raising the arms above the head. Land as quietly as possible on the box.","Once balanced, step down off the box. Maintain posture throughout.","Repeat for the desired number of repetitions. Avoid knees collapsing inward, back arching or slouching, or uncontrolled head movement."]},"kettlebell deadlift":{"videoUrl":"https://www.youtube.com/watch?v=LnIMaf-XOpM","thumbnailUrl":"https://img.youtube.com/vi/LnIMaf-XOpM/hqdefault.jpg","steps":["Stand in athletic posture with feet hip to shoulder width apart and toes pointing forward. Hinge at the hips and bend the knees to grab onto the kettlebell which is positioned between the midfeet. Brace the abs.","With the back flat and chin tucked, push into the floor to lift the kettlebell until the body is full upright.","Reverse the pattern, hinging at the hips to initiate, to return the bell to its starting position.","Repeat for the desired number of repetitions. Avoid rounding the spine, losing head position, letting the knees collapse inward or rounding the shoulders."]},"tuck jumps":{"videoUrl":"https://www.youtube.com/watch?v=-bnJGikRGsM","thumbnailUrl":"https://img.youtube.com/vi/-bnJGikRGsM/hqdefault.jpg","steps":["Stand in athletic posture with feet hip to shoulder width apart and toes pointing forward. Draw in the abs.","Drop into a squat rapidly driving the hips back, arms pull back until approximately a quarter squat depth is reached (you should feel explosive from this position).","Rapidly change directions and jump up, bringing both knees toward the chest as you leave the ground. Attempt to get your thighs parallel with the ground.","Land as quietly as possible, keeping the feet, knees, and hips pointing straight ahead. Upon impact immediately repeat.","Maintain posture throughout. Avoid landing hard/loudly, letting the heels strike the ground hard, allowing the knees to collapse inward or your back to arch or slouch."]}};
+
+function libNorm(s){return(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();}
+// Also try without spaces for compound words (push-up → pushup)
+function libNorm2(s){return libNorm(s).replace(/ /g,'');}
+
+function libInit() {
+  // Apply NASM enrichment to EXERCISE_LIBRARY entries
+  EXERCISE_LIBRARY.forEach(e => {
+    const k1 = libNorm(e.name);
+    const k2 = libNorm2(e.name);
+    const p = NASM_PATCH[k1] || NASM_PATCH[k2] || null;
+    e.videoUrl = p ? p.videoUrl : null;
+    e.thumbnailUrl = p ? p.thumbnailUrl : null;
+    e.steps = p ? p.steps : [];
+  });
+
+  document.getElementById('libTotalCount').textContent = EXERCISE_LIBRARY.length;
+  document.getElementById('libSearchBox').addEventListener('input', e => {
+    libSt.search = e.target.value.toLowerCase();
+    libApply();
+  });
+
+  // Section chips
+  const secs = [...new Set(EXERCISE_LIBRARY.map(e => e.section).filter(Boolean))];
+  const sf = document.getElementById('libSectionChips');
+  secs.forEach(s => {
+    const c = document.createElement('div'); c.className='lib-chip'; c.textContent=LIB_SEC[s]||s;
+    c.onclick = () => libToggle('sections', s, c); sf.appendChild(c);
+  });
+
+  // Equipment chips
+  const eqs = [...new Set(EXERCISE_LIBRARY.flatMap(e => e.equipment||[]))].sort();
+  const ef = document.getElementById('libEquipChips');
+  eqs.forEach(eq => {
+    const c = document.createElement('div'); c.className='lib-chip'; c.textContent=LIB_EQ[eq]||eq;
+    c.onclick = () => libToggle('equip', eq, c); ef.appendChild(c);
+  });
+
+  // Sub-category chips
+  const subs = [...new Set(EXERCISE_LIBRARY.map(e => e.sub).filter(Boolean))].sort();
+  const subf = document.getElementById('libSubChips');
+  subs.forEach(s => {
+    const c = document.createElement('div'); c.className='lib-chip'; c.textContent=s;
+    c.onclick = () => libToggle('subs', s, c); subf.appendChild(c);
+  });
+
+  // Phase chips (static, already in HTML — wire onclick)
+  document.querySelectorAll('#libPhaseChips .lib-chip').forEach((c,i) => {
+    c.onclick = () => libToggle('phases', i+1, c);
+  });
+
+  libApply();
+}
+
+function libToggle(key, val, el) {
+  if (libSt[key].has(val)) { libSt[key].delete(val); el.classList.remove('active'); }
+  else { libSt[key].add(val); el.classList.add('active'); }
+  libApply();
+}
+function libToggleVideo() {
+  libSt.hasVideo = !libSt.hasVideo;
+  document.getElementById('libVideoChip').classList.toggle('active', libSt.hasVideo);
+  libApply();
+}
+function libClearAll() {
+  libSt.search=''; libSt.sections.clear(); libSt.phases.clear(); libSt.equip.clear(); libSt.subs.clear(); libSt.hasVideo=false;
+  document.getElementById('libSearchBox').value='';
+  document.getElementById('libVideoChip').classList.remove('active');
+  document.querySelectorAll('#libSidebar .lib-chip').forEach(c => c.classList.remove('active'));
+  libApply();
+}
+function libToggleMobileFilters() {
+  document.getElementById('libSidebar').classList.toggle('open');
+  document.getElementById('libFiltOverlay').classList.toggle('open');
+}
+function libCloseMobileFilters() {
+  document.getElementById('libSidebar').classList.remove('open');
+  document.getElementById('libFiltOverlay').classList.remove('open');
+}
+
+function libGetFiltered() {
+  return EXERCISE_LIBRARY.filter(e => {
+    if (libSt.search) {
+      const hay = [e.name, e.muscles, e.sub, e.section, e.notes].join(' ').toLowerCase();
+      if (!hay.includes(libSt.search)) return false;
+    }
+    if (libSt.sections.size > 0 && !libSt.sections.has(e.section)) return false;
+    if (libSt.phases.size > 0 && !(e.phases||[]).some(p => libSt.phases.has(p))) return false;
+    if (libSt.equip.size > 0 && !(e.equipment||[]).some(q => libSt.equip.has(q))) return false;
+    if (libSt.subs.size > 0 && !libSt.subs.has(e.sub)) return false;
+    if (libSt.hasVideo && !e.videoUrl) return false;
+    return true;
+  }).sort((a,b) => a.name.localeCompare(b.name));
+}
+
+function libApply() {
+  const results = libGetFiltered();
+  document.getElementById('libVisibleCount').textContent = results.length;
+  const tc = document.getElementById('libTc'); if(tc) tc.textContent = results.length + ' exercises';
+  if (libSt.view === 'grid') libRenderGrid(results); else libRenderTable(results);
+  const cnt = libSt.sections.size + libSt.phases.size + libSt.equip.size + libSt.subs.size + (libSt.hasVideo?1:0);
+  const badge = document.getElementById('libFBadge');
+  if (badge) { badge.textContent=cnt; badge.style.display=cnt?'':'none'; }
+}
+
+function libRenderGrid(exercises) {
+  const c = document.getElementById('libContainer');
+  if (!exercises.length) {
+    c.innerHTML = '<div class="lib-empty"><div style="font-size:36px">🔍</div><div>No exercises match your filters.</div></div>';
+    return;
+  }
+  const hasW = !!getWorkout();
+  c.innerHTML = `<div class="lib-grid">${exercises.map(e => {
+    const phTags = (e.phases||[]).map(p=>`<span class="lib-tag ltp">Ph${p}</span>`).join('');
+    const eqTags = (e.equipment||[]).slice(0,2).map(eq=>`<span class="lib-tag lte">${LIB_EQ[eq]||eq}</span>`).join('');
+    return `<div class="lib-card" onclick="libOpenModal('${e.id}')">
+      ${e.thumbnailUrl?`<img class="lib-thumb" src="${e.thumbnailUrl}" loading="lazy" onerror="this.remove()">` : ''}
+      <div class="lib-name">${esc(e.name)}</div>
+      <div class="lib-muscles">${esc(e.muscles||'')}</div>
+      <div class="lib-tags"><span class="lib-tag lts">${LIB_SEC[e.section]||e.section}</span>${phTags}${eqTags}</div>
+      ${hasW ? `<button class="lib-addbtn" onclick="event.stopPropagation();libShowPicker('${e.id}')">+ Add to Workout</button>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function libRenderTable(exercises) {
+  const c = document.getElementById('libContainer');
+  if (!exercises.length) {
+    c.innerHTML = '<div class="lib-empty"><div style="font-size:36px">🔍</div><div>No exercises match your filters.</div></div>';
+    return;
+  }
+  const hasW = !!getWorkout();
+  c.innerHTML = `<div class="lib-tw"><table class="lib-tbl">
+    <thead><tr><th>Exercise</th><th>Section</th><th>Muscles</th><th>Phases</th>${hasW?'<th></th>':''}</tr></thead>
+    <tbody>${exercises.map(e => `<tr onclick="libOpenModal('${e.id}')" style="cursor:pointer">
+      <td style="font-weight:600">${esc(e.name)}</td>
+      <td><span class="lib-tag lts">${LIB_SEC[e.section]||e.section}</span></td>
+      <td style="color:var(--lt2);font-size:12px">${esc(e.muscles||'')}</td>
+      <td style="font-size:11px;color:var(--lt2)">${(e.phases||[]).map(p=>`Ph${p}`).join(', ')}</td>
+      ${hasW?`<td><button class="lib-addbtn" onclick="event.stopPropagation();libShowPicker('${e.id}')" style="width:auto;padding:4px 8px">+</button></td>`:''}
+    </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function libOpenModal(id) {
+  const e = EXERCISE_LIBRARY.find(ex => ex.id === id); if (!e) return;
+  const hasW = !!getWorkout();
+  const phBadges = (e.phases||[]).map(p=>`<span class="lib-tag ltp" style="margin:2px">Phase ${p}</span>`).join('');
+  const eqBadges = (e.equipment||[]).length
+    ? (e.equipment||[]).map(eq=>`<span class="lib-tag lte" style="margin:2px">${LIB_EQ[eq]||eq}</span>`).join('')
+    : '<span style="color:var(--lt3);font-size:13px">None required</span>';
+  document.getElementById('libModalContent').innerHTML = `
+    <div class="lib-mh">
+      <div>
+        <div class="lib-mt">${esc(e.name)}</div>
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+          <span class="lib-tag lts">${LIB_SEC[e.section]||e.section}</span>
+          ${e.sub?`<span class="lib-tag" style="background:rgba(255,255,255,.07);color:var(--lt2);border-color:var(--lbr)">${esc(e.sub)}</span>`:''}
+        </div>
+      </div>
+      <button class="lib-mx" onclick="libCloseModal()">×</button>
+    </div>
+    ${e.muscles?`<div class="lib-ms"><h4>Muscles</h4><p>${esc(e.muscles)}</p></div>`:''}
+    <div class="lib-ms"><h4>OPT Phases</h4><div style="margin-top:4px">${phBadges||'All phases'}</div></div>
+    <div class="lib-ms"><h4>Equipment</h4><div style="margin-top:4px">${eqBadges}</div></div>
+    ${e.notes?`<div class="lib-ms"><h4>Coaching Notes</h4><div class="lib-notes">${esc(e.notes)}</div></div>`:''}
+    ${e.steps&&e.steps.length?`<div class="lib-ms"><h4>Step-by-Step Instructions</h4><ol style="padding-left:18px;margin-top:6px">${e.steps.map(s=>`<li style="font-size:13px;line-height:1.65;margin-bottom:5px;color:var(--lt)">${s}</li>`).join('')}</ol></div>`:''}
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+      ${e.videoUrl?`<a class="lib-vlink" href="${e.videoUrl}" target="_blank" rel="noopener">▶ Watch on YouTube</a>`:''}
+      ${hasW?`<button class="lib-mab" onclick="libCloseModal();libShowPicker('${e.id}')">+ Add to Current Workout</button>`:''}
+    </div>`;
+  document.getElementById('libModal').classList.add('open');
+}
+function libCloseModal(evt) {
+  if (!evt || evt.target.id==='libModal') document.getElementById('libModal').classList.remove('open');
+}
+function libShowPicker(id) {
+  const w = getWorkout(); if (!w) { toast('Open a workout in the Edit Workout tab first'); return; }
+  const e = EXERCISE_LIBRARY.find(ex => ex.id === id); if (!e) return;
+  libPickerEx = e;
+  document.getElementById('libPickerName').textContent = '"' + e.name + '"';
+  const sel = document.getElementById('libPickerSec');
+  if (e.section && sel) sel.value = e.section;
+  document.getElementById('libPicker').classList.add('open');
+}
+function libConfirmAdd() {
+  const w = getWorkout(); if (!w || !libPickerEx) return;
+  const secId = document.getElementById('libPickerSec').value;
+  const phase = w.phase || 1;
+  const defs = PHASE_DEFAULTS[phase][secId] || {};
+  if (!w.exercises[secId]) w.exercises[secId] = [];
+  w.exercises[secId].push({
+    id: libPickerEx.id, name: libPickerEx.name, muscles: libPickerEx.muscles||'',
+    sets: defs.sets||'', reps: defs.reps||'', tempo: defs.tempo||'', rest: defs.rest||'',
+    notes: libPickerEx.notes||'',
+  });
+  w.updatedAt = Date.now(); saveState();
+  document.getElementById('libPicker').classList.remove('open');
+  toast('Added: ' + libPickerEx.name);
+  if (document.getElementById('view-builder').classList.contains('active')) renderSections();
+  libPickerEx = null;
+  libApply();
+}
+function libSetView(v) {
+  libSt.view = v;
+  document.getElementById('libBtnGrid').classList.toggle('active', v==='grid');
+  document.getElementById('libBtnTable').classList.toggle('active', v==='table');
+  libApply();
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('libModal').classList.remove('open');
+    document.getElementById('libPicker').classList.remove('open');
+  }
+});
 </script>
 </body>
 </html>
