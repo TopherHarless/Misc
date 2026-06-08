@@ -324,6 +324,19 @@
   .modal-ex-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .modal-phase-badge { background: var(--phase-badge); color: var(--phase-badge-text); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 700; }
   .no-results { text-align: center; color: var(--gray-500); padding: 40px 20px; font-size: 14px; }
+  .picker-filter-row { padding: 8px 16px; border-bottom: 1px solid var(--gray-200); display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
+  .picker-filter-row:empty { display: none; }
+  .picker-chip { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--gray-300); font-size: 12px; font-weight: 600; cursor: pointer; background: white; color: var(--gray-700); transition: all 0.12s; user-select: none; }
+  .picker-chip:hover { border-color: var(--navy-light); background: var(--blue-section-light); }
+  .picker-chip.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .picker-chip-label { font-size: 10px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.5px; align-self: center; padding: 0 2px; }
+  .modal-best-badge { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 700; }
+  .modal-ex-item.ex-already-added { opacity: 0.45; }
+  .ex-added-badge { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 700; }
+  .ex-pick-info { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--gray-400); padding: 2px 4px; line-height: 1; border-radius: 4px; flex-shrink: 0; }
+  .ex-pick-info:hover { color: var(--navy); background: var(--blue-section-light); }
+  .ex-info-btn { background: none; border: none; cursor: pointer; font-size: 13px; color: var(--gray-400); padding: 0 3px; line-height: 1; vertical-align: middle; border-radius: 4px; }
+  .ex-info-btn:hover { color: var(--navy); }
 
   /* ===== ASSIGN WORKOUT MODAL ===== */
   .assign-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
@@ -774,6 +787,7 @@
     <div class="modal-search">
       <input type="text" id="picker-search" placeholder="Search exercises..." oninput="filterExercises()" autocomplete="off">
     </div>
+    <div class="picker-filter-row" id="picker-filter-row"></div>
     <div class="modal-body">
       <div class="modal-sidebar" id="picker-sidebar"></div>
       <div class="modal-list" id="picker-list"></div>
@@ -1617,7 +1631,10 @@ function renderSections() {
       return `<tr ${chk.ok?'':'style="background:#fffaf2"'}>
       <td style="width:28px"><span style="color:var(--gray-300);cursor:grab;font-size:16px;padding:0 4px">&#8597;</span></td>
       <td>
-        <div class="col-name">${esc(ex.name)}</div>
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <div class="col-name">${esc(ex.name)}</div>
+          <button class="ex-info-btn" onclick="event.stopPropagation();libEnsureInit();libOpenModal('${ex.id}')" title="How to do this exercise">ⓘ</button>
+        </div>
         ${ex.muscles?`<div class="col-sub">${esc(ex.muscles)}</div>`:''}
         ${warnRow}
         <input class="ex-note-inline" value="${esc(ex.notes||'')}" placeholder="Add a note or cue..." oninput="updateExercise('${sec.id}',${i},'notes',this.value)" title="Notes">
@@ -1677,14 +1694,43 @@ function resetSectionDefaults(sectionId) {
 
 // ===== EXERCISE PICKER =====
 function openPicker(sectionId, swapIdx=null, swapMuscles='') {
-  pickerState={sectionId, activeSub:null, searchTerm:'', swapIdx, swapMuscles:swapMuscles||''};
+  pickerState={sectionId, activeSub:null, searchTerm:'', swapIdx, swapMuscles:swapMuscles||'', phases:new Set(), equip:new Set()};
   document.getElementById('picker-search').value='';
   const secLabel=SECTIONS.find(s=>s.id===sectionId)?.label||sectionId;
   document.getElementById('picker-title').textContent=
     (swapIdx!==null&&swapIdx!==undefined) ? `🔁 Swap Exercise — find a replacement` : `Add Exercise — ${secLabel}`;
-  renderPickerSidebar(sectionId); renderPickerList(sectionId);
+  renderPickerChips(sectionId); renderPickerSidebar(sectionId); renderPickerList(sectionId);
   document.getElementById('exercise-picker-modal').classList.add('open');
   setTimeout(()=>document.getElementById('picker-search').focus(),100);
+}
+function renderPickerChips(sectionId) {
+  const secExercises = EXERCISE_LIBRARY.filter(e => e.section === sectionId);
+  const eqs = [...new Set(secExercises.flatMap(e => e.equipment||[]))].sort();
+  const row = document.getElementById('picker-filter-row');
+  let html = '';
+  html += '<span class="picker-chip-label">Phase</span>';
+  for (let p = 1; p <= 5; p++) {
+    if (secExercises.some(e => (e.phases||[]).includes(p))) {
+      html += `<div class="picker-chip" id="pchip-p${p}" onclick="pickerTogglePhase(${p},this)">Ph ${p}</div>`;
+    }
+  }
+  if (eqs.length) {
+    html += '<span class="picker-chip-label" style="margin-left:6px">Equipment</span>';
+    eqs.forEach(eq => {
+      html += `<div class="picker-chip" id="pchip-e${eq}" onclick="pickerToggleEquip('${eq}',this)">${LIB_EQ[eq]||eq}</div>`;
+    });
+  }
+  row.innerHTML = html;
+}
+function pickerTogglePhase(p, el) {
+  if (pickerState.phases.has(p)) pickerState.phases.delete(p); else pickerState.phases.add(p);
+  el.classList.toggle('active');
+  renderPickerList(pickerState.sectionId);
+}
+function pickerToggleEquip(eq, el) {
+  if (pickerState.equip.has(eq)) pickerState.equip.delete(eq); else pickerState.equip.add(eq);
+  el.classList.toggle('active');
+  renderPickerList(pickerState.sectionId);
 }
 function closePicker() { document.getElementById('exercise-picker-modal').classList.remove('open'); }
 function renderPickerSidebar(sectionId) {
@@ -1702,7 +1748,11 @@ function renderPickerList(sectionId) {
   let exercises=EXERCISE_LIBRARY.filter(e=>e.section===sectionId);
   if(sub&&!term) exercises=exercises.filter(e=>e.sub===sub);
   if(term) exercises=exercises.filter(e=>e.name.toLowerCase().includes(term)||(e.muscles||'').toLowerCase().includes(term)||(e.sub||'').toLowerCase().includes(term));
+  if(pickerState.phases&&pickerState.phases.size>0) exercises=exercises.filter(e=>(e.phases||[]).some(p=>pickerState.phases.has(p)));
+  if(pickerState.equip&&pickerState.equip.size>0) exercises=exercises.filter(e=>(e.equipment||[]).some(q=>pickerState.equip.has(q)));
   const setting=currentSetting();
+  const w=getWorkout();
+  const usedIds=w?new Set(Object.values(w.exercises||{}).flat().map(e=>e.id)):new Set();
   // In swap mode, prioritise exercises sharing a muscle word with the one being replaced.
   const swapWords=(pickerState.swapMuscles||'').toLowerCase().split(/[,\s]+/).filter(x=>x.length>2);
   const muscleScore=ex=>{ if(!swapWords.length) return 0; const m=(ex.muscles||'').toLowerCase(); return swapWords.some(w=>m.includes(w))?1:0; };
@@ -1714,14 +1764,20 @@ function renderPickerList(sectionId) {
   exercises.sort((a,b)=>score(b)-score(a));
   const list=document.getElementById('picker-list');
   if(!exercises.length){ list.innerHTML='<div class="no-results">No exercises found.</div>'; return; }
+  const topScore=exercises.length?score(exercises[0]):0;
+  const isSwap=pickerState.swapIdx!==null&&pickerState.swapIdx!==undefined;
   list.innerHTML=exercises.map(ex=>{
     const match=ex.phases.includes(phase);
     const chk=checkExerciseSetting(ex,setting);
+    const alreadyAdded=usedIds.has(ex.id);
     const phaseBadge=match?`<span class="modal-phase-badge">&#10003; Phase ${phase}</span>`:`<span style="color:var(--gray-500);font-size:11px">Ph ${ex.phases.join(',')}</span>`;
     const equipBadge=chk.ok?'':`<span style="background:#fff0e0;color:#b35900;border:1px solid #f0c088;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700">⚠ ${esc(chk.reason)}</span>`;
-    return `<div class="modal-ex-item" style="${chk.ok?'':'opacity:0.55'}" onclick="addExercise('${ex.id}')">
-      <div><div class="modal-ex-name">${esc(ex.name)}</div><div class="modal-ex-meta">${esc(ex.sub)}${ex.muscles?' · '+esc(ex.muscles):''}</div></div>
-      <div class="modal-ex-right">${equipBadge}${phaseBadge}</div>
+    const bestBadge=(isSwap&&score(ex)===topScore&&topScore>100)?`<span class="modal-best-badge">★ Best Match</span>`:'';
+    const addedBadge=alreadyAdded?`<span class="ex-added-badge">✓ Added</span>`:'';
+    const opacity=chk.ok?(alreadyAdded?'opacity:0.45':''):'opacity:0.55';
+    return `<div class="modal-ex-item${alreadyAdded?' ex-already-added':''}" style="${opacity}" onclick="addExercise('${ex.id}')">
+      <div style="flex:1;min-width:0"><div class="modal-ex-name">${esc(ex.name)}</div><div class="modal-ex-meta">${esc(ex.sub)}${ex.muscles?' · '+esc(ex.muscles):''}</div></div>
+      <div class="modal-ex-right">${addedBadge}${bestBadge}${equipBadge}${phaseBadge}<button class="ex-pick-info" onclick="event.stopPropagation();libEnsureInit();libOpenModal('${ex.id}')" title="View exercise details">ⓘ</button></div>
     </div>`;
   }).join('');
 }
@@ -2940,6 +2996,7 @@ function libNorm(s){return(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').trim()
 // Also try without spaces for compound words (push-up → pushup)
 function libNorm2(s){return libNorm(s).replace(/ /g,'');}
 
+function libEnsureInit() { if (!libInited) { libInit(); libInited = true; } }
 function libInit() {
   // Apply NASM enrichment to EXERCISE_LIBRARY entries
   EXERCISE_LIBRARY.forEach(e => {
