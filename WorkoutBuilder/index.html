@@ -349,6 +349,10 @@
   .ex-added-badge { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 700; }
   .ex-pick-info { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--gray-400); padding: 2px 4px; line-height: 1; border-radius: 4px; flex-shrink: 0; }
   .ex-pick-info:hover { color: var(--navy); background: var(--blue-section-light); }
+  .picker-group-label { font-size: 10px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 12px 4px; }
+  .picker-group-label:first-child { padding-top: 4px; }
+  .modal-ex-item.recommended { border-left: 3px solid var(--navy-light); background: var(--blue-section-light); }
+  .modal-ex-item.recommended:hover { background: #dbeafe; }
   .ex-info-btn { background: none; border: none; cursor: pointer; font-size: 13px; color: var(--gray-400); padding: 0 3px; line-height: 1; vertical-align: middle; border-radius: 4px; }
   .ex-info-btn:hover { color: var(--navy); }
 
@@ -570,6 +574,10 @@
   .lib-vlink:hover{border-color:#ff6584}
   .lib-mab{background:var(--la);border:none;color:#fff;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
   .lib-mab:hover{opacity:.9}
+  .lib-alt-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .1s;border:1px solid var(--lbr);margin-bottom:5px}
+  .lib-alt-row:hover{background:var(--ls2);border-color:var(--la)}
+  .lib-alt-name{font-size:13px;font-weight:600;color:var(--lt)}
+  .lib-alt-eq{font-size:11px;color:var(--lt2);margin-top:2px}
   /* section picker */
   #libPicker{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;align-items:center;justify-content:center;padding:20px}
   #libPicker.open{display:flex}
@@ -1735,7 +1743,7 @@ function renderSections() {
       const chk=lib?checkExerciseSetting(lib,setting):{ok:true,reason:''};
       const warnRow=chk.ok?'':`<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="background:#fff0e0;color:#b35900;border:1px solid #f0c088;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700">⚠ ${esc(chk.reason)}</span>
-          <button class="btn btn-accent btn-sm" style="padding:2px 10px;font-size:11px" onclick="openPicker('${sec.id}',${i},'${esc((lib&&lib.muscles)||ex.muscles||'')}')">🔁 Swap</button>
+          <button class="btn btn-accent btn-sm" style="padding:2px 10px;font-size:11px" onclick="openPicker('${sec.id}',${i},'${esc((lib&&lib.muscles)||ex.muscles||'')}','${ex.id}')">🔁 Swap</button>
         </div>`;
       return `<tr ${chk.ok?'':'style="background:#fffaf2"'}>
       <td style="width:28px"><span style="color:var(--gray-300);cursor:grab;font-size:16px;padding:0 4px">&#8597;</span></td>
@@ -1802,8 +1810,8 @@ function resetSectionDefaults(sectionId) {
 }
 
 // ===== EXERCISE PICKER =====
-function openPicker(sectionId, swapIdx=null, swapMuscles='') {
-  pickerState={sectionId, activeSub:null, searchTerm:'', swapIdx, swapMuscles:swapMuscles||'', phases:new Set(), equip:new Set()};
+function openPicker(sectionId, swapIdx=null, swapMuscles='', swapExId='') {
+  pickerState={sectionId, activeSub:null, searchTerm:'', swapIdx, swapMuscles:swapMuscles||'', swapExId:swapExId||'', phases:new Set(), equip:new Set()};
   document.getElementById('picker-search').value='';
   const secLabel=SECTIONS.find(s=>s.id===sectionId)?.label||sectionId;
   document.getElementById('picker-title').textContent=
@@ -1875,7 +1883,7 @@ function renderPickerList(sectionId) {
   if(!exercises.length){ list.innerHTML='<div class="no-results">No exercises found.</div>'; return; }
   const topScore=exercises.length?score(exercises[0]):0;
   const isSwap=pickerState.swapIdx!==null&&pickerState.swapIdx!==undefined;
-  list.innerHTML=exercises.map(ex=>{
+  const renderItem=(ex)=>{
     const match=ex.phases.includes(phase);
     const chk=checkExerciseSetting(ex,setting);
     const alreadyAdded=usedIds.has(ex.id);
@@ -1888,7 +1896,26 @@ function renderPickerList(sectionId) {
       <div style="flex:1;min-width:0"><div class="modal-ex-name">${esc(ex.name)}</div><div class="modal-ex-meta">${esc(ex.sub)}${ex.muscles?' · '+esc(ex.muscles):''}</div></div>
       <div class="modal-ex-right">${addedBadge}${bestBadge}${equipBadge}${phaseBadge}<button class="ex-pick-info" onclick="event.stopPropagation();libEnsureInit();libOpenModal('${ex.id}')" title="View exercise details">ⓘ</button></div>
     </div>`;
-  }).join('');
+  };
+  // Curated alternatives group — shown at top in swap mode when the exercise has a mapping
+  const curatedIds=(isSwap&&pickerState.swapExId)?EXERCISE_ALTERNATIVES[pickerState.swapExId]||[]:[];
+  const exIdSet=new Set(exercises.map(e=>e.id));
+  // Preserve curation order; only show ones visible in this section (respects phase/equip filters too)
+  const curatedExs=curatedIds.map(id=>EXERCISE_LIBRARY.find(e=>e.id===id)).filter(e=>e&&exIdSet.has(e.id));
+  let html='';
+  if(curatedExs.length>0){
+    html+=`<div class="picker-group-label">⭐ Recommended Alternatives</div>`;
+    html+=curatedExs.map(renderItem).join('');
+    const curatedSet=new Set(curatedExs.map(e=>e.id));
+    const rest=exercises.filter(e=>!curatedSet.has(e.id));
+    if(rest.length>0){
+      html+=`<div class="picker-group-label" style="margin-top:8px">All Options</div>`;
+      html+=rest.map(renderItem).join('');
+    }
+  } else {
+    html=exercises.map(renderItem).join('');
+  }
+  list.innerHTML=html;
 }
 function addExercise(exId) {
   const ex=EXERCISE_LIBRARY.find(e=>e.id===exId); if(!ex) return;
@@ -3105,6 +3132,221 @@ function libNorm(s){return(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').trim()
 // Also try without spaces for compound words (push-up → pushup)
 function libNorm2(s){return libNorm(s).replace(/ /g,'');}
 
+// Curated exercise alternatives, derived from the Exercise Alternatives Library.
+// Keys are EXERCISE_LIBRARY ids; values are arrays of alternative ids in priority order.
+const EXERCISE_ALTERNATIVES = {
+  // ── CHEST ──────────────────────────────────────────────────────────────
+  'res-bench':              ['res-chest-db-press','res-chest-incline-db','res-pushup','res-chest-pushup','res-push-pushup','res-push-tubing-press','res-sl-press'],
+  'res-chest-bb-press':     ['res-chest-db-press','res-chest-incline-db','res-pushup','res-chest-pushup','res-push-pushup','res-push-tubing-press','res-sl-press'],
+  'res-chest-bb-press2':    ['res-chest-db-press','res-chest-incline-db','res-pushup','res-push-pushup','res-push-tubing-press'],
+  'res-inc-db':             ['res-bench','res-chest-bb-press','res-chest-db-press','res-pushup','res-push-pushup','res-push-tubing-press'],
+  'res-chest-incline-db':   ['res-bench','res-chest-bb-press','res-chest-db-press','res-pushup','res-push-pushup','res-push-tubing-press'],
+  'res-machine-chest':      ['res-bench','res-chest-db-press','res-pushup','res-push-pushup','res-push-tubing-press'],
+  'res-chest-machine-press':['res-bench','res-chest-db-press','res-pushup','res-push-pushup','res-push-tubing-press'],
+  'res-chest-db-press':     ['res-bench','res-chest-bb-press','res-pushup','res-push-pushup','res-push-tubing-press','res-chest-incline-db'],
+  'res-db-fly':             ['res-chest-db-press','res-cable-fly','res-push-pushup','res-pushup'],
+  'res-cable-fly':          ['res-db-fly','res-push-pushup','res-pushup','res-push-tubing-press'],
+  'res-pushup':             ['res-push-tubing-press','res-chest-db-press','res-sl-press','res-chest-sl-cable-press','res-push-incline-pu','res-push-susp-pu','res-exp-pushup'],
+  'res-chest-pushup':       ['res-push-tubing-press','res-chest-db-press','res-sl-press','res-push-incline-pu','res-exp-pushup'],
+  'res-push-pushup':        ['res-push-tubing-press','res-chest-db-press','res-sl-press','res-push-incline-pu','res-push-susp-pu','res-exp-pushup'],
+  'res-push-pu-rotation':   ['res-pushup','res-push-pushup','res-push-tubing-press'],
+  'res-push-incline-pu':    ['res-pushup','res-push-pushup','res-push-tubing-press'],
+  'res-push-tubing-press':  ['res-chest-db-press','res-pushup','res-push-pushup','res-sl-press','res-chest-sl-cable-press'],
+  'res-push-tubing2':       ['res-chest-db-press','res-pushup','res-push-pushup','res-sl-press'],
+  'res-sl-press':           ['res-push-tubing-press','res-chest-db-press','res-pushup','res-push-pushup'],
+  'res-chest-sl-cable-press':['res-push-tubing-press','res-chest-db-press','res-pushup','res-push-pushup'],
+  'res-chest-stand-cable':  ['res-push-tubing-press','res-chest-db-press','res-pushup','res-push-pushup'],
+  'res-push-susp-pu':       ['res-pushup','res-push-pushup','res-push-tubing-press','res-push-incline-pu'],
+  'res-mb-chest':           ['res-exp-pushup'],
+  'res-exp-pushup':         ['res-mb-chest','res-pushup','res-push-pushup'],
+  'res-chest-ball-pushup':  ['res-pushup','res-push-pushup','res-push-susp-pu'],
+  // ── BACK ───────────────────────────────────────────────────────────────
+  'res-lat-pull':           ['res-pullup','res-back-pullup','res-back-pullups','res-pull-tubing-row','res-db-row','res-back-ball-db-row'],
+  'res-back-lat-pulldown':  ['res-pullup','res-back-pullup','res-pull-tubing-row','res-db-row'],
+  'res-back-seated-lat-pd': ['res-pullup','res-back-pullup','res-pull-tubing-row','res-db-row'],
+  'res-stand-lat':          ['res-pullup','res-back-pullup','res-pull-tubing-row','res-db-row'],
+  'res-back-standing-lat-pd':['res-pullup','res-back-pullup','res-pull-tubing-row','res-db-row'],
+  'res-pullup':             ['res-lat-pull','res-back-lat-pulldown','res-pull-tubing-row','res-pull-inv-row','res-db-row'],
+  'res-back-pullup':        ['res-lat-pull','res-pull-tubing-row','res-pull-inv-row','res-db-row'],
+  'res-back-pullups':       ['res-lat-pull','res-pull-tubing-row','res-pull-inv-row','res-db-row'],
+  'res-cable-row':          ['res-pull-tubing-row','res-pull-tubing-row2','res-db-row','res-back-ball-db-row','res-pull-inv-row'],
+  'res-back-seated-cable-row':['res-pull-tubing-row','res-db-row','res-pull-inv-row'],
+  'res-stand-row':          ['res-pull-tubing-row','res-db-row','res-back-ball-db-row','res-pull-inv-row'],
+  'res-back-standing-cable-row':['res-pull-tubing-row','res-db-row','res-pull-inv-row'],
+  'res-db-row':             ['res-cable-row','res-pull-tubing-row','res-pull-inv-row','res-back-sl-cable-row'],
+  'res-barbell-row':        ['res-db-row','res-cable-row','res-pull-tubing-row','res-pull-inv-row'],
+  'res-back-ball-db-row':   ['res-db-row','res-cable-row','res-pull-tubing-row','res-pull-inv-row'],
+  'res-back-bb-row1':       ['res-db-row','res-cable-row','res-pull-tubing-row','res-pull-inv-row'],
+  'res-back-bb-row2':       ['res-db-row','res-cable-row','res-pull-tubing-row','res-pull-inv-row'],
+  'res-back-bb-row3':       ['res-db-row','res-cable-row','res-pull-tubing-row','res-pull-inv-row'],
+  'res-face-pull':          ['res-pull-tubing-row','res-lat-raise','res-sh-lat-raise'],
+  'res-pull-inv-row':       ['res-pull-tubing-row','res-pull-tubing-row2','res-db-row','res-cable-row'],
+  'res-pull-tubing-row':    ['res-db-row','res-cable-row','res-pull-inv-row','res-back-seated-cable-row'],
+  'res-pull-tubing-row2':   ['res-db-row','res-cable-row','res-pull-inv-row'],
+  'res-pull-sl-cable-row':  ['res-pull-tubing-row','res-db-row','res-cable-row'],
+  'res-back-sl-cable-row':  ['res-pull-tubing-row','res-db-row','res-cable-row'],
+  'res-pull-susp-row':      ['res-pull-inv-row','res-pull-tubing-row','res-db-row'],
+  'res-pull-susp-row2':     ['res-pull-inv-row','res-pull-tubing-row','res-db-row'],
+  'res-back-ball-cobra':    ['act-core1-floor-cobra','act-core25-back-ext','core-back-ext'],
+  // ── SHOULDERS ──────────────────────────────────────────────────────────
+  'res-oh-press':           ['res-db-shoulder','res-sh-seated-db','res-sh-stand-db','res-press-stand-db-sh','res-press-tubing-sh','res-bku','res-sh-stand-kb'],
+  'res-sh-bb-press':        ['res-db-shoulder','res-sh-seated-db','res-sh-stand-db','res-press-tubing-sh','res-bku'],
+  'res-db-shoulder':        ['res-oh-press','res-sh-bb-press','res-press-tubing-sh','res-bku','res-sh-stand-kb','res-arnold'],
+  'res-sh-seated-db':       ['res-oh-press','res-sh-stand-db','res-press-tubing-sh','res-bku','res-arnold'],
+  'res-sh-stand-db':        ['res-oh-press','res-sh-seated-db','res-press-tubing-sh','res-bku','res-arnold'],
+  'res-press-stand-db-sh':  ['res-oh-press','res-sh-stand-db','res-press-tubing-sh','res-bku'],
+  'res-sl-db-sh':           ['res-db-shoulder','res-sh-stand-db','res-press-tubing-sh'],
+  'res-press-sl-db-sh':     ['res-db-shoulder','res-sh-stand-db','res-press-tubing-sh'],
+  'res-arnold':             ['res-db-shoulder','res-sh-seated-db','res-bku','res-press-arnold'],
+  'res-press-arnold':       ['res-db-shoulder','res-sh-seated-db','res-bku','res-arnold'],
+  'res-lat-raise':          ['res-sh-lat-raise','res-sh-stand-scaption','res-front-raise'],
+  'res-sh-lat-raise':       ['res-lat-raise','res-sh-stand-scaption','res-front-raise'],
+  'res-front-raise':        ['res-lat-raise','res-sh-lat-raise','res-sh-stand-scaption'],
+  'res-sh-stand-scaption':  ['res-lat-raise','res-sh-lat-raise','res-front-raise'],
+  'res-sh-sl-scaption':     ['res-sh-stand-scaption','res-lat-raise','res-sh-lat-raise'],
+  'res-bku':                ['res-arnold','res-press-arnold','res-db-shoulder','res-sh-stand-kb'],
+  'res-sh-stand-kb':        ['res-db-shoulder','res-press-tubing-sh','res-bku'],
+  'res-press-tubing-sh':    ['res-db-shoulder','res-sh-seated-db','res-sh-stand-db','res-press-stand-db-sh'],
+  'res-sh-ball-combo2':     ['res-db-shoulder','res-sh-stand-db','res-sl-db-sh'],
+  // ── LEGS / SQUAT PATTERN ───────────────────────────────────────────────
+  'res-barbell-sq':         ['res-goblet-sq','res-leg-kb-goblet','res-leg-db-squat','res-squat-bw-squat','res-leg-press','res-squat-ball-squat'],
+  'res-leg-bb-squat':       ['res-goblet-sq','res-leg-kb-goblet','res-leg-db-squat','res-squat-bw-squat','res-leg-press'],
+  'res-goblet-sq':          ['res-barbell-sq','res-leg-kb-goblet','res-leg-db-squat','res-squat-bw-squat','res-leg-press','res-squat-ball-squat'],
+  'res-leg-kb-goblet':      ['res-goblet-sq','res-barbell-sq','res-leg-db-squat','res-squat-bw-squat','res-leg-press'],
+  'res-leg-db-squat':       ['res-goblet-sq','res-barbell-sq','res-squat-bw-squat','res-squat-ball-squat','res-leg-press'],
+  'res-leg-press':          ['res-squat-bw-squat','res-goblet-sq','res-barbell-sq','res-step-up','res-lunge','res-squat-ball-squat'],
+  'res-leg-leg-press':      ['res-squat-bw-squat','res-goblet-sq','res-barbell-sq','res-step-up','res-lunge'],
+  'res-leg-ext':            ['res-squat-bw-squat','res-goblet-sq','res-leg-press'],
+  'res-squat-bw-squat':     ['res-goblet-sq','res-squat-ball-squat','res-leg-db-squat','res-leg-press'],
+  'res-squat-ball-squat':   ['res-squat-bw-squat','res-goblet-sq','res-leg-db-squat'],
+  'res-lunge':              ['res-step-up','res-leg-stepup-bal','res-squat-bw-squat','res-goblet-sq','res-leg-mp-lunges'],
+  'res-leg-mp-lunges':      ['res-lunge','res-step-up','res-leg-stepup-bal','res-squat-bw-squat'],
+  'res-leg-lunge-bal':      ['res-lunge','res-leg-mp-lunges','res-step-up','res-squat-bw-squat'],
+  'res-step-up':            ['res-lunge','res-leg-mp-lunges','res-leg-stepup-bal','res-squat-bw-squat','res-goblet-sq'],
+  'res-leg-stepup-bal':     ['res-step-up','res-lunge','res-leg-mp-lunges','res-squat-bw-squat'],
+  'res-leg-mp-stepup-bal':  ['res-step-up','res-lunge','res-leg-mp-lunges','res-squat-bw-squat'],
+  'res-squat-stepup-bal':   ['res-step-up','res-lunge','res-squat-bw-squat'],
+  'res-sl-squat-r':         ['res-squat-bw-squat','res-lunge','res-goblet-sq'],
+  // ── LEGS / HINGE PATTERN ───────────────────────────────────────────────
+  'res-deadlift':           ['res-rdl','res-hinge-rdl','res-goblet-sq','res-kb-swing','res-leg-bb-squat'],
+  'res-leg-bb-deadlift':    ['res-rdl','res-hinge-rdl','res-goblet-sq','res-kb-swing'],
+  'res-rdl':                ['res-sl-rdl-r','res-hinge-rdl','res-leg-rdl','res-leg-sb-hamcurl','res-leg-curl','res-hinge-bw-goodmorning'],
+  'res-hinge-rdl':          ['res-rdl','res-sl-rdl-r','res-hinge-sl-rdl','res-leg-sb-hamcurl','res-leg-curl','res-hinge-bw-goodmorning'],
+  'res-leg-rdl':            ['res-rdl','res-hinge-rdl','res-sl-rdl-r','res-leg-sb-hamcurl','res-leg-curl'],
+  'res-sl-rdl-r':           ['res-rdl','res-hinge-rdl','res-hinge-sl-rdl','res-leg-sb-hamcurl','res-hinge-bw-goodmorning'],
+  'res-hinge-sl-rdl':       ['res-rdl','res-hinge-rdl','res-sl-rdl-r','res-leg-sb-hamcurl','res-hinge-bw-goodmorning'],
+  'res-leg-sl-rdl':         ['res-rdl','res-hinge-rdl','res-sl-rdl-r','res-leg-sb-hamcurl'],
+  'res-hinge-kb-sl-rdl':    ['res-rdl','res-sl-rdl-r','res-hinge-sl-rdl','res-hinge-bw-goodmorning'],
+  'res-hinge-bw-goodmorning':['res-rdl','res-hinge-rdl','res-sl-rdl-r'],
+  'res-leg-curl':           ['res-leg-sb-hamcurl','res-rdl','res-hinge-rdl','res-sl-rdl-r'],
+  'res-leg-sb-hamcurl':     ['res-leg-curl','res-rdl','res-hinge-rdl','res-sl-rdl-r'],
+  'res-kb-swing':           ['res-rdl','res-hinge-rdl','res-deadlift','res-leg-bb-deadlift'],
+  'res-calf-raise':         ['res-sl-calf','res-leg-calf-raise2'],
+  'res-leg-calf-raise2':    ['res-calf-raise','res-sl-calf'],
+  'res-sl-calf':            ['res-calf-raise','res-leg-calf-raise2'],
+  // ── ARMS - BICEPS ──────────────────────────────────────────────────────
+  'res-bar-curl':           ['res-db-curl','res-bi-stand-db-curl','res-hammer','res-cable-curl'],
+  'res-bi-stand-bb-curl':   ['res-db-curl','res-bi-stand-db-curl','res-hammer','res-cable-curl'],
+  'res-bi-curls':           ['res-db-curl','res-bi-stand-db-curl','res-hammer','res-cable-curl'],
+  'res-bi-machine':         ['res-db-curl','res-bi-stand-db-curl','res-bar-curl'],
+  'res-bi-db-curls2':       ['res-bar-curl','res-bi-stand-db-curl','res-hammer','res-cable-curl'],
+  'res-bi-stand-db2':       ['res-bar-curl','res-bi-stand-db-curl','res-hammer','res-cable-curl'],
+  'res-db-curl':            ['res-bar-curl','res-bi-stand-bb-curl','res-hammer','res-cable-curl'],
+  'res-bi-stand-db-curl':   ['res-bar-curl','res-bi-stand-bb-curl','res-hammer','res-cable-curl'],
+  'res-bi-sl-db-curl':      ['res-db-curl','res-bi-stand-db-curl','res-bar-curl'],
+  'res-hammer':             ['res-db-curl','res-bi-stand-db-curl','res-bar-curl','res-cable-curl'],
+  'res-cable-curl':         ['res-db-curl','res-bi-stand-db-curl','res-bar-curl','res-hammer'],
+  // ── ARMS - TRICEPS ─────────────────────────────────────────────────────
+  'res-pushdown':           ['res-oh-ext','res-skull','res-dip','res-cgbp'],
+  'res-tri-cable-pushdown1':['res-oh-ext','res-skull','res-dip','res-cgbp'],
+  'res-tri-cable-pushdown2':['res-oh-ext','res-skull','res-dip','res-cgbp'],
+  'res-tri-cable-pd3':      ['res-oh-ext','res-skull','res-dip','res-cgbp'],
+  'res-tri-cable-pd4':      ['res-oh-ext','res-skull','res-dip','res-cgbp'],
+  'res-tri-stand-td':       ['res-oh-ext','res-skull','res-dip','res-cgbp'],
+  'res-oh-ext':             ['res-pushdown','res-skull','res-dip'],
+  'res-tri-ball-ext':       ['res-oh-ext','res-pushdown','res-skull'],
+  'res-skull':              ['res-pushdown','res-oh-ext','res-dip','res-cgbp'],
+  'res-dip':                ['res-cgbp','res-pushdown','res-oh-ext','res-skull'],
+  'res-cgbp':               ['res-dip','res-pushdown','res-oh-ext'],
+  // ── CORE / ACTIVATION ──────────────────────────────────────────────────
+  'act-core25-palloff':     ['act-core1-plank','act-core25-side-plank','core-side-plank','core-plank','act-core25-cable-rot','act-core25-cable-chop'],
+  'core-cable-rot':         ['act-core25-palloff','act-core25-cable-chop','act-core25-cable-lift','act-core1-plank'],
+  'act-core25-cable-chop':  ['act-core25-cable-rot','act-core25-cable-lift','act-core25-palloff'],
+  'core-cable-chop':        ['act-core25-cable-chop','act-core25-cable-rot','act-core25-palloff'],
+  'act-core25-cable-lift':  ['act-core25-cable-chop','act-core25-cable-rot','act-core25-palloff'],
+  'core-cable-lift':        ['act-core25-cable-lift','act-core25-cable-chop','act-core25-cable-rot'],
+  'act-core25-cable-rot':   ['act-core25-palloff','act-core25-cable-chop','act-core25-cable-lift'],
+  'act-core25-ball-crunch': ['core-crunch','core-rev-crunch','act-core25-rev-crunch','act-core1-plank'],
+  'core-ball-crunch':       ['core-crunch','act-core25-ball-crunch','core-rev-crunch','act-core1-plank'],
+  'act-core1-dead-bug':     ['act-core1-bird-dog','core-bird-dog','act-core1-plank','core-plank'],
+  'core-dead-bug':          ['core-bird-dog','act-core1-bird-dog','core-plank','act-core1-plank'],
+  'act-core1-bird-dog':     ['act-core1-dead-bug','core-dead-bug','act-core1-plank','core-plank','act-core25-back-ext'],
+  'core-bird-dog':          ['core-dead-bug','act-core1-dead-bug','core-plank','act-core1-plank'],
+  'act-core1-plank':        ['act-core25-side-plank','core-side-plank','act-core1-dead-bug','act-core1-bird-dog'],
+  'core-plank':             ['core-side-plank','act-core1-plank','core-dead-bug','core-bird-dog'],
+  'act-core25-side-plank':  ['act-core1-plank','core-plank','act-core25-palloff'],
+  'core-side-plank':        ['core-plank','act-core25-side-plank','act-core1-plank'],
+  'act-core25-rev-crunch':  ['core-crunch','act-core25-knee-up','core-knee-up'],
+  'core-rev-crunch':        ['core-crunch','core-knee-up','act-core25-knee-up'],
+  'act-core25-knee-up':     ['act-core25-rev-crunch','core-rev-crunch','core-crunch'],
+  'core-knee-up':           ['core-rev-crunch','act-core25-rev-crunch','core-crunch'],
+  'act-core25-back-ext':    ['act-core1-bird-dog','core-bird-dog','act-core1-dead-bug','act-core1-floor-bridge','core-bridge'],
+  'core-back-ext':          ['core-bird-dog','act-core1-bird-dog','core-dead-bug','core-bridge'],
+  'act-core1-floor-bridge': ['act-core25-back-ext','core-back-ext','act-core1-bird-dog'],
+  'act-core1-floor-bridge2':['act-core25-back-ext','core-back-ext','act-core1-bird-dog'],
+  'act-core1-bridge':       ['act-core25-back-ext','core-back-ext','act-core1-bird-dog'],
+  'core-bridge':            ['core-back-ext','act-core25-back-ext','core-bird-dog'],
+  'act-core1-floor-cobra':  ['act-core25-back-ext','core-back-ext','act-core1-bird-dog'],
+  'core-cobra':             ['core-back-ext','act-core25-back-ext','core-bird-dog'],
+  'act-core1-ball-bridge':  ['act-core1-floor-bridge','act-core1-floor-bridge2','core-bridge'],
+  'act-core1-ball-cobra':   ['act-core1-floor-cobra','core-cobra','act-core25-back-ext'],
+  'core-rus-twist':         ['act-core25-cable-rot','act-core25-palloff','core-crunch'],
+  'act-core25-fire-hydrant':['act-core1-floor-bridge','core-bridge','core-side-plank'],
+  'core-mb-rot':            ['act-core25-cable-rot','act-core25-palloff'],
+  'core-mb-chop':           ['act-core25-cable-chop','act-core25-cable-rot'],
+  'core-mb-oh':             ['act-core25-cable-lift','act-core25-cable-chop'],
+  // ── SKILL DEVELOPMENT ──────────────────────────────────────────────────
+  'sd-plyo1-squat-stab':    ['sd-plyo5-tuck-jump','plyo-tuck-hold','plyo-tempo-squat','sd-plyo1-mp-jump-stab','sd-plyo24-power-stepup'],
+  'sd-plyo1-squat-jd-stab': ['sd-plyo24-squat-jump','plyo-squat-hold','plyo-tempo-squat'],
+  'sd-plyo1-mp-jump-stab':  ['sd-plyo1-squat-stab','sd-plyo24-squat-jump','plyo-squat-hold'],
+  'sd-plyo24-squat-jump':   ['sd-plyo5-tuck-jump','plyo-tuck-rep','plyo-tempo-squat','plyo-pwr-step'],
+  'plyo-squat-hold':        ['plyo-tuck-hold','plyo-tempo-squat','sd-plyo24-power-stepup'],
+  'plyo-squat-rep':         ['plyo-tuck-rep','sd-plyo5-tuck-jump','plyo-tempo-squat'],
+  'sd-plyo24-repeat-box':   ['sd-plyo24-squat-jump','plyo-squat-hold','sd-plyo5-tuck-jump','plyo-tempo-stepup'],
+  'plyo-box-hold':          ['plyo-squat-hold','sd-plyo24-squat-jump','plyo-tempo-squat'],
+  'sd-plyo5-tuck-jump':     ['sd-plyo24-squat-jump','plyo-squat-hold','plyo-tempo-squat'],
+  'plyo-tuck-hold':         ['plyo-squat-hold','plyo-tempo-squat'],
+  'plyo-tuck-rep':          ['plyo-squat-rep','sd-plyo24-squat-jump'],
+  'plyo-depth-jump':        ['sd-plyo24-squat-jump','plyo-squat-hold','sd-plyo5-tuck-jump'],
+  'plyo-lat-hold':          ['plyo-squat-hold','plyo-ice-skate'],
+  'plyo-pwr-step':          ['sd-plyo24-squat-jump','plyo-squat-hold','plyo-tempo-stepup'],
+  'sd-plyo24-power-stepup': ['sd-plyo24-squat-jump','plyo-squat-hold','plyo-tempo-stepup'],
+  'plyo-sl-pwr':            ['plyo-pwr-step','sd-plyo24-power-stepup','plyo-tempo-stepup'],
+  'sd-saq-cone-drills1':    ['sd-saq-speed-ladder1','sd-saq-speed-ladder2','saq-t-drill','saq-5-10-5'],
+  'sd-saq-cone-drills2':    ['sd-saq-speed-ladder1','sd-saq-speed-ladder2','saq-t-drill','saq-5-10-5'],
+  'sd-saq-speed-ladder1':   ['sd-saq-cone-drills1','sd-saq-cone-drills2','saq-ladder','saq-cone-weave'],
+  'sd-saq-speed-ladder2':   ['sd-saq-cone-drills1','sd-saq-cone-drills2','saq-ladder','saq-cone-weave'],
+  'saq-t-drill':            ['saq-5-10-5','sd-saq-cone-drills1','saq-cone-weave'],
+  'saq-5-10-5':             ['saq-t-drill','sd-saq-cone-drills1','saq-cone-weave'],
+  'saq-ladder':             ['sd-saq-speed-ladder1','sd-saq-speed-ladder2','saq-cone-weave'],
+  'saq-cone-weave':         ['saq-t-drill','saq-5-10-5','sd-saq-cone-drills1'],
+  // ── TOTAL BODY / COMPOUND ──────────────────────────────────────────────
+  'res-tb-ball-squat-curl':  ['res-goblet-sq','res-squat-bw-squat','res-thruster'],
+  'res-tb-ball-sq-curl2':    ['res-goblet-sq','res-squat-bw-squat','res-thruster'],
+  'res-tb-sl-squat-row':     ['res-goblet-sq','res-pull-tubing-row','res-db-row'],
+  'res-tb-stepup-curl':      ['res-step-up','res-leg-stepup-bal','res-db-curl'],
+  'res-thruster':            ['res-goblet-sq','res-barbell-sq','res-db-shoulder','res-tb-ball-squat-curl'],
+  'res-clean':               ['res-kb-swing','res-thruster','res-deadlift'],
+  'res-mb-slam':             ['res-kb-swing','res-thruster'],
+  // ── BALANCE / SINGLE-LEG ───────────────────────────────────────────────
+  'bal-sl-squat':            ['res-squat-bw-squat','res-lunge','act-bal-lunge'],
+  'bal-sl-squat-td':         ['res-squat-bw-squat','res-lunge','act-bal-lunge'],
+  'act-bal-squat':           ['res-squat-bw-squat','res-lunge'],
+  'act-bal-squat-touchdown': ['res-squat-bw-squat','res-lunge'],
+  'bal-sl-rdl':              ['act-core1-floor-bridge','core-bridge','res-rdl','res-hinge-rdl'],
+  'act-bal-rdl':             ['res-rdl','res-hinge-rdl','act-core1-floor-bridge'],
+};
+
 function libEnsureInit() { if (!libInited) { libInit(); libInited = true; } }
 function libInit() {
   // Apply NASM enrichment to EXERCISE_LIBRARY entries
@@ -3268,6 +3510,7 @@ function libOpenModal(id) {
     <div class="lib-ms"><h4>Equipment</h4><div style="margin-top:4px">${eqBadges}</div></div>
     ${e.notes?`<div class="lib-ms"><h4>Coaching Notes</h4><div class="lib-notes">${esc(e.notes)}</div></div>`:''}
     ${e.steps&&e.steps.length?`<div class="lib-ms"><h4>Step-by-Step Instructions</h4><ol style="padding-left:18px;margin-top:6px">${e.steps.map(s=>`<li style="font-size:13px;line-height:1.65;margin-bottom:5px;color:var(--lt)">${s}</li>`).join('')}</ol></div>`:''}
+    ${(()=>{const altIds=EXERCISE_ALTERNATIVES[e.id]||[];const altExs=altIds.map(id=>EXERCISE_LIBRARY.find(ex=>ex.id===id)).filter(Boolean);return altExs.length?`<div class="lib-ms"><h4>Alternatives</h4><div style="margin-top:6px">${altExs.map(alt=>{const eqStr=(alt.equipment||[]).map(eq=>LIB_EQ[eq]||eq).join(', ')||'No equipment';return`<div class="lib-alt-row" onclick="libOpenModal('${alt.id}')"><div><div class="lib-alt-name">${esc(alt.name)}</div><div class="lib-alt-eq">${eqStr}</div></div><span style="color:var(--lt2);font-size:18px">›</span></div>`;}).join('')}</div></div>`:'';})()}
     <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
       ${e.videoUrl?`<a class="lib-vlink" href="${e.videoUrl}" target="_blank" rel="noopener">▶ Watch on YouTube</a>`:''}
       ${hasW?`<button class="lib-mab" onclick="libCloseModal();libShowPicker('${e.id}')">+ Add to Current Workout</button>`:''}
