@@ -324,6 +324,20 @@
   .modal-ex-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .modal-phase-badge { background: var(--phase-badge); color: var(--phase-badge-text); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 700; }
   .no-results { text-align: center; color: var(--gray-500); padding: 40px 20px; font-size: 14px; }
+  /* ===== EQUIPMENT PICKER PANEL ===== */
+  #b-setting-btn { width:100%;border:1px solid var(--gray-300);border-radius:8px;padding:9px 14px;background:white;cursor:pointer;text-align:left;font-size:14px;display:flex;align-items:center;justify-content:space-between;color:var(--navy) }
+  #b-setting-btn:hover { border-color:var(--navy-light) }
+  #b-setting-panel { position:absolute;left:0;right:0;top:calc(100% + 4px);background:white;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.13);z-index:500;padding:14px;min-width:320px }
+  .equip-presets { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--gray-200) }
+  .equip-preset-btn { padding:4px 10px;border-radius:20px;border:1px solid var(--gray-300);background:white;cursor:pointer;font-size:12px;font-weight:600;color:var(--gray-700);transition:all .12s }
+  .equip-preset-btn:hover { background:var(--blue-section-light);border-color:var(--navy-light) }
+  .equip-preset-btn.active { background:var(--navy);color:white;border-color:var(--navy) }
+  .equip-chip-grid { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px }
+  .equip-chip { padding:4px 10px;border-radius:20px;border:1px solid var(--gray-300);background:white;cursor:pointer;font-size:12px;font-weight:500;color:var(--gray-700);user-select:none;transition:all .12s }
+  .equip-chip:hover { border-color:var(--navy-light);background:var(--blue-section-light) }
+  .equip-chip.active { background:var(--navy);color:white;border-color:var(--navy) }
+  .equip-impact-row { display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--gray-200);font-size:13px;color:var(--gray-700);cursor:pointer }
+
   .picker-filter-row { padding: 8px 16px; border-bottom: 1px solid var(--gray-200); display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
   .picker-filter-row:empty { display: none; }
   .picker-chip { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--gray-300); font-size: 12px; font-weight: 600; cursor: pointer; background: white; color: var(--gray-700); transition: all 0.12s; user-select: none; }
@@ -668,15 +682,19 @@
         <label>Date</label>
         <input type="date" id="b-date" oninput="markDirty()">
       </div>
-      <div class="field-group" style="flex:2">
+      <div class="field-group" style="flex:2;position:relative">
         <label>Setting / Equipment</label>
-        <select id="b-setting" onchange="markDirty(); updateSettingContext()">
-          <option value="Full Gym">🏋️ Full Gym</option>
-          <option value="Apartment (DB + Pull-up Bar)">🏠 Apartment (DB + Pull-up Bar)</option>
-          <option value="Home (DB + Pull-up Bar)">🏡 Home (DB + Pull-up Bar)</option>
-          <option value="Bodyweight Only">🤸 Bodyweight Only</option>
-          <option value="Outdoors">🌳 Outdoors</option>
-        </select>
+        <button id="b-setting-btn" onclick="toggleEquipPanel(event)">
+          <span id="b-setting-label">🏋️ Full Gym</span>
+          <span style="color:var(--gray-400);font-size:11px">▼</span>
+        </button>
+        <div id="b-setting-panel" style="display:none">
+          <div class="equip-presets" id="equip-presets"></div>
+          <div class="equip-chip-grid" id="equip-chip-grid"></div>
+          <label class="equip-impact-row">
+            <input type="checkbox" id="equip-impact" onchange="onEquipImpactChange()"> Allow jumping / plyometrics
+          </label>
+        </div>
       </div>
       <div class="builder-actions">
         <button class="btn btn-success" onclick="saveWorkout()">💾 Save</button>
@@ -897,20 +915,23 @@ const EQUIP_LABELS = {
   bands:'resistance bands', cardio_machine:'a cardio machine', battle_ropes:'battle ropes',
   jump_rope:'a jump rope', ez_bar:'an EZ bar', foam_roller:'a foam roller',
 };
-// Returns {ok, reason} for whether an exercise can be done under a given setting name.
-function checkExerciseSetting(ex, settingName) {
-  const cfg = SETTINGS[settingName] || SETTINGS['Full Gym'];
+// Active equipment state — initialized to Full Gym defaults.
+let workoutEquipCfg = { equip:'ALL', allowImpact:true };
+let workoutPresetName = 'Full Gym';
+
+// Returns {ok, reason} for whether an exercise can be done under the current setting.
+// setting can be a preset name string (legacy) or a cfg object {equip, allowImpact}.
+function checkExerciseSetting(ex, setting) {
+  const cfg = (typeof setting === 'string') ? (SETTINGS[setting] || SETTINGS['Full Gym']) : setting;
   if (cfg.equip !== 'ALL') {
-    const missing = (ex.equipment || []).filter(e => !cfg.equip.includes(e));
+    const equipArr = Array.isArray(cfg.equip) ? cfg.equip : [];
+    const missing = (ex.equipment || []).filter(e => !equipArr.includes(e));
     if (missing.length) return { ok:false, reason:'Needs ' + missing.map(m => EQUIP_LABELS[m] || m).join(' + ') };
   }
   if (ex.impact === 'high' && !cfg.allowImpact) return { ok:false, reason:'No jumping/impact here' };
   return { ok:true, reason:'' };
 }
-function currentSetting() {
-  const el = document.getElementById('b-setting');
-  return (el && el.value) || (getWorkout() && getWorkout().setting) || 'Full Gym';
-}
+function currentSetting() { return workoutEquipCfg; }
 
 const EXERCISE_LIBRARY = [
   // WARM-UP: SMR
@@ -1538,6 +1559,83 @@ function deleteWorkout(id) {
   saveState(); renderLibrary(); toast('Deleted.');
 }
 
+// ===== EQUIPMENT PANEL =====
+function toggleEquipPanel(e) {
+  e.stopPropagation();
+  const panel = document.getElementById('b-setting-panel');
+  if (panel.style.display === 'none') {
+    equipPanelInit();
+    panel.style.display = 'block';
+    setTimeout(() => document.addEventListener('click', closeEquipPanelOutside), 0);
+  } else {
+    panel.style.display = 'none';
+    document.removeEventListener('click', closeEquipPanelOutside);
+  }
+}
+function closeEquipPanelOutside(e) {
+  const panel = document.getElementById('b-setting-panel');
+  const btn = document.getElementById('b-setting-btn');
+  if (!panel || panel.contains(e.target) || btn.contains(e.target)) return;
+  panel.style.display = 'none';
+  document.removeEventListener('click', closeEquipPanelOutside);
+}
+function equipPanelInit() {
+  const allEquip = Object.keys(LIB_EQ);
+  const activeSet = workoutEquipCfg.equip === 'ALL' ? new Set(allEquip) : new Set(workoutEquipCfg.equip);
+  // Presets
+  document.getElementById('equip-presets').innerHTML = Object.entries(SETTINGS).map(([name, cfg]) => {
+    const short = name.replace(/ \(.+\)/, '');
+    return `<button class="equip-preset-btn${workoutPresetName===name?' active':''}" onclick="loadEquipPreset(${JSON.stringify(name)})">${cfg.icon} ${short}</button>`;
+  }).join('');
+  // Equipment chips
+  document.getElementById('equip-chip-grid').innerHTML = allEquip.map(eq =>
+    `<div class="equip-chip${activeSet.has(eq)?' active':''}" onclick="toggleEquipItem('${eq}',this)">${LIB_EQ[eq]||eq}</div>`
+  ).join('');
+  document.getElementById('equip-impact').checked = workoutEquipCfg.allowImpact;
+}
+function loadEquipPreset(name) {
+  const cfg = SETTINGS[name]; if (!cfg) return;
+  workoutPresetName = name;
+  workoutEquipCfg = { equip: cfg.equip, allowImpact: cfg.allowImpact };
+  equipPanelInit();
+  onEquipChanged();
+}
+function toggleEquipItem(eq, el) {
+  const allEquip = Object.keys(LIB_EQ);
+  const activeSet = workoutEquipCfg.equip === 'ALL' ? new Set(allEquip) : new Set(workoutEquipCfg.equip);
+  if (activeSet.has(eq)) { activeSet.delete(eq); } else { activeSet.add(eq); }
+  workoutEquipCfg = { equip: [...activeSet], allowImpact: workoutEquipCfg.allowImpact };
+  workoutPresetName = getMatchingPreset() || 'Custom';
+  el.classList.toggle('active');
+  document.querySelectorAll('.equip-preset-btn').forEach(b => b.classList.toggle('active', b.textContent.trim().includes(workoutPresetName.replace(/ \(.+\)/,''))));
+  onEquipChanged();
+}
+function onEquipImpactChange() {
+  workoutEquipCfg = { equip: workoutEquipCfg.equip, allowImpact: document.getElementById('equip-impact').checked };
+  workoutPresetName = getMatchingPreset() || workoutPresetName;
+  onEquipChanged();
+}
+function onEquipChanged() {
+  updateEquipLabel(); markDirty(); updateSettingContext();
+}
+function updateEquipLabel() {
+  const icon = (SETTINGS[workoutPresetName]?.icon) || '⚙️';
+  const label = workoutPresetName === 'Custom'
+    ? `⚙️ Custom (${workoutEquipCfg.equip === 'ALL' ? 'All' : workoutEquipCfg.equip.length} items)`
+    : `${icon} ${workoutPresetName.replace(/ \(.+\)/, '')}`;
+  document.getElementById('b-setting-label').textContent = label;
+}
+function getMatchingPreset() {
+  const eq = workoutEquipCfg.equip;
+  const imp = workoutEquipCfg.allowImpact;
+  for (const [name, cfg] of Object.entries(SETTINGS)) {
+    if (cfg.equip === 'ALL' && eq === 'ALL' && cfg.allowImpact === imp) return name;
+    if (Array.isArray(cfg.equip) && Array.isArray(eq) && cfg.equip.length === eq.length
+        && cfg.equip.every(e => eq.includes(e)) && cfg.allowImpact === imp) return name;
+  }
+  return null;
+}
+
 // ===== WORKOUT BUILDER =====
 function getWorkout() { return state.workouts[state.currentWorkoutId]; }
 function markDirty() { syncWorkoutHeader(); }
@@ -1548,7 +1646,7 @@ function syncWorkoutHeader() {
   w.name=client ? `${client} – Phase ${phase}` : 'New Workout';
   w.client=client; w.goal=document.getElementById('b-goal').value;
   w.phase=parseInt(phase); w.date=document.getElementById('b-date').value;
-  w.setting=document.getElementById('b-setting').value;
+  w.setting=workoutPresetName; w.equipArray=workoutEquipCfg.equip==='ALL'?'ALL':[...workoutEquipCfg.equip]; w.allowImpact=workoutEquipCfg.allowImpact;
   w.coaching=document.getElementById('b-coaching').value;
   w.updatedAt=Date.now();
 }
@@ -1558,7 +1656,17 @@ function renderBuilder() {
   document.getElementById('b-goal').value=w.goal||'';
   document.getElementById('b-phase').value=w.phase||1;
   document.getElementById('b-date').value=w.date||'';
-  document.getElementById('b-setting').value=w.setting||'Full Gym';
+  // Load equipment state — use precise equipArray if saved, otherwise fall back to named preset.
+  if (w.equipArray !== undefined) {
+    workoutEquipCfg = { equip: w.equipArray, allowImpact: w.allowImpact !== undefined ? w.allowImpact : true };
+    workoutPresetName = w.setting || getMatchingPreset() || 'Custom';
+  } else {
+    const preset = w.setting || 'Full Gym';
+    const cfg = SETTINGS[preset] || SETTINGS['Full Gym'];
+    workoutEquipCfg = { equip: cfg.equip, allowImpact: cfg.allowImpact };
+    workoutPresetName = preset;
+  }
+  updateEquipLabel();
   document.getElementById('b-coaching').value=w.coaching||'';
   updateGoalContext(); updateSettingContext(); renderSections();
 }
@@ -1578,13 +1686,14 @@ function updatePhaseContext() {
   }
 }
 function updateSettingContext() {
-  const name=document.getElementById('b-setting').value||'Full Gym';
-  const cfg=SETTINGS[name]||SETTINGS['Full Gym'];
   const banner=document.getElementById('setting-context');
-  if(name==='Full Gym'){ banner.style.display='none'; }
+  if(workoutPresetName==='Full Gym'){ banner.style.display='none'; }
   else {
+    const cfg=SETTINGS[workoutPresetName];
+    const icon=cfg?cfg.icon:'⚙️';
+    const note=cfg?cfg.note:(workoutEquipCfg.equip==='ALL'?'All equipment available.':'Only selected equipment available.');
     banner.style.display='block';
-    banner.innerHTML=`<strong>${cfg.icon} ${name}:</strong> ${cfg.note} &nbsp;Exercises you can't do here are dimmed with a <strong>⚠ Swap</strong> button.`;
+    banner.innerHTML=`<strong>${icon} ${workoutPresetName}:</strong> ${note} &nbsp;Exercises you can't do here are dimmed with a <strong>⚠ Swap</strong> button.`;
   }
   renderSections();
 }
