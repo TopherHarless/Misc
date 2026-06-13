@@ -327,7 +327,7 @@
   /* ===== EQUIPMENT PICKER PANEL ===== */
   #b-setting-btn { width:100%;border:1px solid var(--gray-300);border-radius:8px;padding:9px 14px;background:white;cursor:pointer;text-align:left;font-size:14px;display:flex;align-items:center;justify-content:space-between;color:var(--navy) }
   #b-setting-btn:hover { border-color:var(--navy-light) }
-  #b-setting-panel { position:absolute;left:0;right:0;top:calc(100% + 4px);background:white;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.13);z-index:500;padding:14px;min-width:320px }
+  #b-setting-panel { position:absolute;left:0;right:0;top:calc(100% + 4px);background:white;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.13);z-index:500;padding:14px;min-width:320px;overflow-y:auto }
   .equip-presets { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--gray-200) }
   .equip-preset-btn { padding:4px 10px;border-radius:20px;border:1px solid var(--gray-300);background:white;cursor:pointer;font-size:12px;font-weight:600;color:var(--gray-700);transition:all .12s }
   .equip-preset-btn:hover { background:var(--blue-section-light);border-color:var(--navy-light) }
@@ -474,6 +474,8 @@
       flex-wrap: wrap;
     }
     .builder-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 8px 8px; }
+    /* Equipment panel: fixed to viewport so it doesn't overflow horizontally */
+    #b-setting-panel { position:fixed !important; left:8px !important; right:8px !important; min-width:0 !important; max-height:65vh; }
 
     /* Exercise table: hide less critical columns, compact inputs */
     .exercise-table th:nth-child(5),
@@ -1574,9 +1576,15 @@ function toggleEquipPanel(e) {
   if (panel.style.display === 'none') {
     equipPanelInit();
     panel.style.display = 'block';
+    // On narrow screens the panel is position:fixed; set top from the button's viewport position
+    if (window.innerWidth <= 640) {
+      const r = document.getElementById('b-setting-btn').getBoundingClientRect();
+      panel.style.top = (r.bottom + 4) + 'px';
+    }
     setTimeout(() => document.addEventListener('click', closeEquipPanelOutside), 0);
   } else {
     panel.style.display = 'none';
+    panel.style.top = '';
     document.removeEventListener('click', closeEquipPanelOutside);
   }
 }
@@ -2157,8 +2165,13 @@ function seedWeek1FatLoss() {
 // ===== PROGRAM LIBRARY SEED (36 workouts: 12 weeks × 3 goals) =====
 function seedProgramLibrary() {
   const PREFIX = 'prog_';
-  // Skip if any prog_ workout already exists (already seeded)
-  if (Object.keys(state.workouts).some(id => id.startsWith(PREFIX))) return;
+  // Once seeded (or once the user had prog_ workouts), never seed again.
+  // Using a localStorage flag means deletions are respected permanently.
+  if (localStorage.getItem('nasm_programs_seeded') === '1') return;
+  if (Object.keys(state.workouts).some(id => id.startsWith(PREFIX))) {
+    localStorage.setItem('nasm_programs_seeded', '1'); // existing users: set flag and skip
+    return;
+  }
 
   const now = Date.now();
 
@@ -3011,6 +3024,7 @@ function seedProgramLibrary() {
   }, 'Phase 5 final week. 5 × 5 barbell bench press peak. Multiplanar hops return — your landing mechanics should be dramatically better than Week 1. 12-week Sport Performance program complete!');
 
   // ─── Commit all workouts to state ───
+  localStorage.setItem('nasm_programs_seeded', '1');
   Object.assign(state.workouts, ws);
   saveState();
 }
