@@ -343,6 +343,8 @@
   .picker-chip { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--gray-300); font-size: 12px; font-weight: 600; cursor: pointer; background: white; color: var(--gray-700); transition: all 0.12s; user-select: none; }
   .picker-chip:hover { border-color: var(--navy-light); background: var(--blue-section-light); }
   .picker-chip.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .picker-chip.active-injury { background: #fef3f2; color: #b42318; border-color: #f04438; }
+  .picker-chip.active-injury:hover { background: #fee4e2; }
   .picker-chip-label { font-size: 10px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.5px; align-self: center; padding: 0 2px; }
   .modal-best-badge { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 700; }
   .modal-ex-item.ex-already-added { opacity: 0.45; }
@@ -527,9 +529,9 @@
 
   /* ===== EXERCISE LIBRARY TAB ===== */
   #view-exercises {
-    --lb:#0f1117;--ls:#1a1d27;--ls2:#22263a;--lbr:#2e3352;
-    --la:#6c63ff;--lt:#e8eaf6;--lt2:#8892b0;--lt3:#4a5568;
-    --lgreen:#22c55e;
+    --lb:#f8f9fc;--ls:#ffffff;--ls2:#f1f5f9;--lbr:#e2e8f0;
+    --la:#1a3a6b;--lt:#1a3a6b;--lt2:#64748b;--lt3:#94a3b8;
+    --lgreen:#16a34a;
     background:var(--lb);color:var(--lt);font-family:'Inter',system-ui,sans-serif;height:calc(100vh - 56px);
   }
   #view-exercises.active{display:flex!important;flex-direction:column}
@@ -553,16 +555,16 @@
   .lib-vbtn.active,.lib-vbtn:hover{background:var(--la);border-color:var(--la);color:#fff}
   .lib-tc{font-size:12px;color:var(--lt2);margin-left:auto}
   .lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(256px,1fr));gap:10px;padding:14px}
-  .lib-card{background:var(--ls);border:1px solid var(--lbr);border-radius:8px;padding:13px;display:flex;flex-direction:column;gap:7px;transition:border-color .15s;cursor:pointer}
-  .lib-card:hover{border-color:var(--la)}
+  .lib-card{background:var(--ls);border:1px solid var(--lbr);border-radius:8px;padding:13px;display:flex;flex-direction:column;gap:7px;transition:border-color .15s,box-shadow .15s;cursor:pointer}
+  .lib-card:hover{border-color:var(--la);box-shadow:0 2px 8px rgba(26,58,107,.1)}
   .lib-thumb{width:calc(100% + 26px);aspect-ratio:16/9;object-fit:cover;display:block;margin:-13px -13px 10px;border-radius:8px 8px 0 0;background:var(--ls2)}
   .lib-name{font-weight:600;font-size:14px;color:var(--lt);line-height:1.3}
   .lib-muscles{font-size:11px;color:var(--lt2);margin-top:-2px}
   .lib-tags{display:flex;flex-wrap:wrap;gap:4px}
   .lib-tag{font-size:10px;padding:2px 6px;border-radius:10px;border:1px solid;font-weight:500}
-  .lts{background:rgba(108,99,255,.15);color:#a8a4ff;border-color:rgba(108,99,255,.3)}
-  .ltp{background:rgba(34,197,94,.1);color:#4ade80;border-color:rgba(34,197,94,.25)}
-  .lte{background:rgba(245,158,11,.1);color:#fcd34d;border-color:rgba(245,158,11,.25)}
+  .lts{background:rgba(26,58,107,.08);color:#1a3a6b;border-color:rgba(26,58,107,.2)}
+  .ltp{background:rgba(22,163,74,.08);color:#15803d;border-color:rgba(22,163,74,.2)}
+  .lte{background:rgba(180,83,9,.08);color:#92400e;border-color:rgba(180,83,9,.2)}
   .lib-addbtn{background:var(--ls2);border:1px solid var(--lbr);color:var(--lt2);border-radius:4px;padding:5px;font-size:12px;cursor:pointer;width:100%;transition:all .15s;text-align:center;margin-top:2px}
   .lib-addbtn:hover{background:var(--la);border-color:var(--la);color:#fff}
   .lib-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--lt3);text-align:center;gap:8px}
@@ -573,29 +575,30 @@
   .lib-tbl td{padding:9px 10px;border-bottom:1px solid var(--lbr);vertical-align:middle}
   .lib-tbl tr:hover td{background:var(--ls2)}
   /* lib detail modal */
-  #libModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1100;align-items:center;justify-content:center;padding:20px;--ls:#1a1d27;--ls2:#22263a;--lbr:#2e3352;--la:#6c63ff;--lt:#e8eaf6;--lt2:#8892b0;--lt3:#4a5568;--lgreen:#22c55e}
+  #libModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1100;align-items:center;justify-content:center;padding:20px;--ls:#ffffff;--ls2:#f1f5f9;--lbr:#e2e8f0;--la:#1a3a6b;--lt:#1a3a6b;--lt2:#64748b;--lt3:#94a3b8}
   #libModal.open{display:flex}
-  .lib-mc{background:var(--ls);border:1px solid var(--lbr);border-radius:12px;max-width:560px;width:100%;max-height:84vh;overflow-y:auto;padding:22px;color:var(--lt)}
+  .lib-mc{background:var(--ls);border:1px solid var(--lbr);border-radius:12px;max-width:560px;width:100%;max-height:84vh;overflow-y:auto;padding:22px;color:var(--lt);box-shadow:0 20px 60px rgba(0,0,0,.25)}
   .lib-mh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
   .lib-mt{font-size:19px;font-weight:700}
   .lib-mx{background:none;border:none;color:var(--lt2);font-size:22px;cursor:pointer;line-height:1;padding:0}
+  .lib-mx:hover{color:var(--lt)}
   .lib-ms{margin-bottom:13px}
   .lib-ms h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--lt2);margin-bottom:5px;font-weight:600}
   .lib-ms p,.lib-ms li{font-size:13px;color:var(--lt);line-height:1.6}
   .lib-ms ol{padding-left:16px}
   .lib-notes{background:var(--ls2);border:1px solid var(--lbr);border-radius:8px;padding:11px;font-size:13px;color:var(--lt);line-height:1.6}
-  .lib-vlink{display:inline-flex;align-items:center;gap:6px;color:#ff6584;border:1px solid var(--lbr);border-radius:6px;padding:6px 12px;font-size:13px;text-decoration:none;margin-top:2px}
-  .lib-vlink:hover{border-color:#ff6584}
+  .lib-vlink{display:inline-flex;align-items:center;gap:6px;color:#dc2626;border:1px solid #fecaca;background:#fef2f2;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:500;text-decoration:none;margin-top:2px}
+  .lib-vlink:hover{background:#fee2e2;border-color:#fca5a5}
   .lib-mab{background:var(--la);border:none;color:#fff;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
-  .lib-mab:hover{opacity:.9}
+  .lib-mab:hover{opacity:.88}
   .lib-alt-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .1s;border:1px solid var(--lbr);margin-bottom:5px}
   .lib-alt-row:hover{background:var(--ls2);border-color:var(--la)}
   .lib-alt-name{font-size:13px;font-weight:600;color:var(--lt)}
   .lib-alt-eq{font-size:11px;color:var(--lt2);margin-top:2px}
   /* section picker */
-  #libPicker{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;align-items:center;justify-content:center;padding:20px}
+  #libPicker{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;align-items:center;justify-content:center;padding:20px}
   #libPicker.open{display:flex}
-  .lib-pk{background:#fff;border-radius:12px;padding:22px;max-width:360px;width:100%}
+  .lib-pk{background:#fff;border-radius:12px;padding:22px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
   .lib-pk h3{margin-bottom:6px;font-size:16px;color:#1a3a6b}
   .lib-pk p{font-size:12px;color:#8a96a3;margin-bottom:14px}
   .lib-pk select{width:100%;padding:8px;border:1px solid var(--gray-300);border-radius:6px;font-size:14px;margin-bottom:14px;outline:none}
@@ -1870,6 +1873,7 @@ function openPicker(sectionId, swapIdx=null, swapMuscles='', swapExId='') {
     swapMuscles:swapMuscles||'', swapExId:effectiveId||'',
     phases: swapIdx !== null ? new Set([phase]) : new Set(),
     equip: new Set(),
+    injuries: swapIdx !== null ? new Set(w?.injuries || []) : new Set(),
   };
   // Update picker title
   document.getElementById('picker-title').textContent = swapIdx !== null ? 'Swap Exercise — find a replacement' : 'Add Exercise';
@@ -1907,7 +1911,19 @@ function renderPickerChips(sectionId) {
       html += `<div class="picker-chip" id="pchip-e${eq}" onclick="pickerToggleEquip('${eq}',this)">${LIB_EQ[eq]||eq}</div>`;
     });
   }
+  const isSwap = pickerState.swapIdx !== null && pickerState.swapIdx !== undefined;
+  if (isSwap && pickerState.injuries && pickerState.injuries.size > 0) {
+    html += '<span class="picker-chip-label" style="margin-left:6px;color:#b42318">Filtering injuries</span>';
+    pickerState.injuries.forEach(key => {
+      html += `<div class="picker-chip active-injury" onclick="pickerToggleInjury('${key}',this)">${INJURY_LABELS[key]||key} ×</div>`;
+    });
+  }
   row.innerHTML = html;
+}
+function pickerToggleInjury(key, el) {
+  if (pickerState.injuries.has(key)) { pickerState.injuries.delete(key); el.remove(); }
+  else { pickerState.injuries.add(key); }
+  renderPickerList(pickerState.sectionId);
 }
 function pickerTogglePhase(p, el) {
   if (pickerState.phases.has(p)) pickerState.phases.delete(p); else pickerState.phases.add(p);
@@ -1942,8 +1958,7 @@ function renderPickerList(sectionId) {
   if(isSwap){
     // In swap mode: hide what you can't do and hide injury-contraindicated exercises
     exercises=exercises.filter(e=>checkExerciseSetting(e,setting).ok);
-    const w=getWorkout();
-    const activeInjuries=(w?.injuries)||[];
+    const activeInjuries=pickerState.injuries?[...pickerState.injuries]:(getWorkout()?.injuries||[]);
     if(activeInjuries.length>0){
       const contraIDs=new Set(activeInjuries.flatMap(inj=>INJURY_CONTRAINDICATIONS[inj]||[]));
       exercises=exercises.filter(e=>!contraIDs.has(e.id));
