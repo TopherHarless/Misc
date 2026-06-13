@@ -1593,7 +1593,7 @@ function equipPanelInit() {
   // Presets
   document.getElementById('equip-presets').innerHTML = Object.entries(SETTINGS).map(([name, cfg]) => {
     const short = name.replace(/ \(.+\)/, '');
-    return `<button class="equip-preset-btn${workoutPresetName===name?' active':''}" onclick="loadEquipPreset(${JSON.stringify(name)})">${cfg.icon} ${short}</button>`;
+    return `<button class="equip-preset-btn${workoutPresetName===name?' active':''}" onclick='loadEquipPreset(${JSON.stringify(name)})'>${cfg.icon} ${short}</button>`;
   }).join('');
   // Equipment chips
   document.getElementById('equip-chip-grid').innerHTML = allEquip.map(eq =>
