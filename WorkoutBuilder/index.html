@@ -2086,10 +2086,11 @@ function toast(msg) {
 document.getElementById('exercise-picker-modal').addEventListener('click',function(e){if(e.target===this)closePicker();});
 document.getElementById('assign-modal').addEventListener('click',function(e){if(e.target===this)closeAssign();});
 
-// ===== WEEK 1 FAT LOSS SEED =====
+// ===== WEEK 1 FAT LOSS SEED (retired — users duplicate from program templates) =====
 function seedWeek1FatLoss() {
   const ids = ['w_fl_w1_mon','w_fl_w1_wed','w_fl_w1_fri'];
-  if (ids.every(id => state.workouts[id])) return; // already seeded
+  if (localStorage.getItem('nasm_week1_seeded') === '1') return;
+  if (ids.every(id => state.workouts[id])) { localStorage.setItem('nasm_week1_seeded','1'); return; }
   const labels = ['Monday','Wednesday','Friday'];
   const days   = ['Mon','Wed','Fri'];
   // Calculate upcoming Mon/Wed/Fri dynamically
@@ -2159,6 +2160,7 @@ function seedWeek1FatLoss() {
     if (!state.weekPlans[weekKey][day]) state.weekPlans[weekKey][day] = [];
     if (!state.weekPlans[weekKey][day].includes(ids[i])) state.weekPlans[weekKey][day].push(ids[i]);
   });
+  localStorage.setItem('nasm_week1_seeded', '1');
   saveState();
 }
 
@@ -3049,7 +3051,8 @@ function migrateProgramNames() {
 }
 
 // ===== INIT =====
-loadState(); seedWeek1FatLoss(); seedProgramLibrary(); migrateProgramNames();
+localStorage.setItem('nasm_week1_seeded', '1'); // retired: users duplicate from program templates
+loadState(); seedProgramLibrary(); migrateProgramNames();
 try {
   const lastView = localStorage.getItem('nasm_opt_last_view');
   if (lastView === 'library') { showView('library'); }
