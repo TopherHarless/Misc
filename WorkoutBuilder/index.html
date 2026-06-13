@@ -409,6 +409,18 @@
   .print-coaching { margin-top: 10px; font-size: 11px; border-top: 2px solid #1a3a6b; padding-top: 6px; }
   .print-coaching strong { font-size: 12px; }
 
+  /* Injury chips */
+  .injury-chip-row { width:100%; padding-top:4px; }
+  .injury-chip-row label { font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px }
+  .injury-chips { display:flex;flex-wrap:wrap;gap:6px }
+  .injury-chip { padding:4px 10px;border-radius:20px;border:1px solid var(--gray-300);background:white;cursor:pointer;font-size:12px;font-weight:500;color:var(--gray-700);user-select:none;transition:all .12s }
+  .injury-chip:hover { border-color:#f04438;background:#fef3f2 }
+  .injury-chip.active { background:#fef3f2;color:#b42318;border-color:#f04438 }
+  /* Swap info banner inside picker */
+  #picker-swap-info { padding:10px 16px;background:#e8f0fe;border-bottom:1px solid #a0b4e8;font-size:13px;color:#1a3a6b;display:none }
+  #picker-swap-info .swap-ex-name { font-weight:700;margin-bottom:2px }
+  #picker-swap-info .swap-ex-muscles { font-size:12px;color:#3a5ea8 }
+
   /* ===== MOBILE ===== */
   @media (max-width: 640px) {
     /* Header: stack logo above nav, hide auth username */
@@ -711,6 +723,10 @@
         <button class="btn btn-outline" onclick="printWorkout()">🖨 Export PDF</button>
         <button class="btn btn-secondary" onclick="showView('library')">← Library</button>
       </div>
+      <div class="injury-chip-row">
+        <label>Injuries / Limitations <span style="font-size:10px;font-weight:400;text-transform:none;color:var(--gray-400)">&nbsp;exercises contraindicated for active injuries are hidden when swapping</span></label>
+        <div class="injury-chips" id="injury-chips"></div>
+      </div>
     </div>
 
     <div id="phase-context" style="background:#e8f0fe;border:1px solid #a0b4e8;border-radius:8px;padding:10px 16px;margin-bottom:10px;font-size:13px;color:#1a3a6b;"></div>
@@ -814,6 +830,10 @@
     </div>
     <div class="modal-search">
       <input type="text" id="picker-search" placeholder="Search exercises..." oninput="filterExercises()" autocomplete="off">
+    </div>
+    <div id="picker-swap-info">
+      <div class="swap-ex-name" id="picker-swap-name"></div>
+      <div class="swap-ex-muscles" id="picker-swap-muscles"></div>
     </div>
     <div class="picker-filter-row" id="picker-filter-row"></div>
     <div class="modal-body">
@@ -1545,7 +1565,7 @@ function newWorkout() {
   const today=new Date().toISOString().slice(0,10);
   state.workouts[id]={ id, name:'New Workout', client:'', goal:'', phase:1, date:today, setting:'Full Gym',
     exercises:{warmup:[],activation:[],skilldevelopment:[],resistance:[],clientschoice:[],cooldown:[]},
-    coaching:'', createdAt:Date.now(), updatedAt:Date.now() };
+    coaching:'', injuries:[], createdAt:Date.now(), updatedAt:Date.now() };
   saveState(); state.currentWorkoutId=id;
   document.getElementById('builder-tab').style.display='inline-flex';
   showView('builder');
@@ -1651,6 +1671,21 @@ function getMatchingPreset() {
   }
   return null;
 }
+function initInjuryChips() {
+  const w = getWorkout();
+  const active = new Set(w ? (w.injuries || []) : []);
+  document.getElementById('injury-chips').innerHTML = Object.entries(INJURY_LABELS).map(([key, label]) =>
+    `<div class="injury-chip${active.has(key)?' active':''}" onclick="toggleInjury('${key}',this)">${label}</div>`
+  ).join('');
+}
+function toggleInjury(key, el) {
+  const w = getWorkout(); if (!w) return;
+  if (!w.injuries) w.injuries = [];
+  const idx = w.injuries.indexOf(key);
+  if (idx >= 0) w.injuries.splice(idx, 1); else w.injuries.push(key);
+  el.classList.toggle('active');
+  markDirty();
+}
 
 // ===== WORKOUT BUILDER =====
 function getWorkout() { return state.workouts[state.currentWorkoutId]; }
@@ -1683,6 +1718,7 @@ function renderBuilder() {
     workoutPresetName = preset;
   }
   updateEquipLabel();
+  initInjuryChips();
   document.getElementById('b-coaching').value=w.coaching||'';
   updateGoalContext(); updateSettingContext(); renderSections();
 }
@@ -1819,11 +1855,37 @@ function resetSectionDefaults(sectionId) {
 
 // ===== EXERCISE PICKER =====
 function openPicker(sectionId, swapIdx=null, swapMuscles='', swapExId='') {
-  pickerState={sectionId, activeSub:null, searchTerm:'', swapIdx, swapMuscles:swapMuscles||'', swapExId:swapExId||'', phases:new Set(), equip:new Set()};
+  const w = getWorkout();
+  // Resolve ID by name when empty (program template exercises have id:'')
+  let effectiveId = swapExId;
+  if (!effectiveId && swapIdx !== null && w && w.exercises[sectionId]?.[swapIdx]) {
+    const exName = w.exercises[sectionId][swapIdx].name;
+    const lib = EXERCISE_LIBRARY.find(e => e.name === exName);
+    if (lib) effectiveId = lib.id;
+    if (!swapMuscles && lib) swapMuscles = lib.muscles || '';
+  }
+  const phase = parseInt(document.getElementById('b-phase').value);
+  pickerState = {
+    sectionId, activeSub:null, searchTerm:'', swapIdx,
+    swapMuscles:swapMuscles||'', swapExId:effectiveId||'',
+    phases: swapIdx !== null ? new Set([phase]) : new Set(),
+    equip: new Set(),
+  };
+  // Update picker title
+  document.getElementById('picker-title').textContent = swapIdx !== null ? 'Swap Exercise — find a replacement' : 'Add Exercise';
+  // Show/hide swap info banner
+  const infoDiv = document.getElementById('picker-swap-info');
+  if (swapIdx !== null && w && w.exercises[sectionId]?.[swapIdx]) {
+    const ex = w.exercises[sectionId][swapIdx];
+    const lib = effectiveId ? EXERCISE_LIBRARY.find(e => e.id === effectiveId) : null;
+    const muscles = swapMuscles || (lib ? lib.muscles : '') || ex.muscles || '';
+    document.getElementById('picker-swap-name').textContent = 'Replacing: ' + ex.name;
+    document.getElementById('picker-swap-muscles').textContent = muscles ? 'Targets: ' + muscles : '';
+    infoDiv.style.display = 'block';
+  } else {
+    infoDiv.style.display = 'none';
+  }
   document.getElementById('picker-search').value='';
-  const secLabel=SECTIONS.find(s=>s.id===sectionId)?.label||sectionId;
-  document.getElementById('picker-title').textContent=
-    (swapIdx!==null&&swapIdx!==undefined) ? `🔁 Swap Exercise — find a replacement` : `Add Exercise — ${secLabel}`;
   renderPickerChips(sectionId); renderPickerSidebar(sectionId); renderPickerList(sectionId);
   document.getElementById('exercise-picker-modal').classList.add('open');
   setTimeout(()=>document.getElementById('picker-search').focus(),100);
@@ -1876,39 +1938,43 @@ function renderPickerList(sectionId) {
   if(pickerState.phases&&pickerState.phases.size>0) exercises=exercises.filter(e=>(e.phases||[]).some(p=>pickerState.phases.has(p)));
   if(pickerState.equip&&pickerState.equip.size>0) exercises=exercises.filter(e=>(e.equipment||[]).some(q=>pickerState.equip.has(q)));
   const setting=currentSetting();
+  const isSwap=pickerState.swapIdx!==null&&pickerState.swapIdx!==undefined;
+  if(isSwap){
+    // In swap mode: hide what you can't do and hide injury-contraindicated exercises
+    exercises=exercises.filter(e=>checkExerciseSetting(e,setting).ok);
+    const w=getWorkout();
+    const activeInjuries=(w?.injuries)||[];
+    if(activeInjuries.length>0){
+      const contraIDs=new Set(activeInjuries.flatMap(inj=>INJURY_CONTRAINDICATIONS[inj]||[]));
+      exercises=exercises.filter(e=>!contraIDs.has(e.id));
+    }
+  }
   const w=getWorkout();
   const usedIds=w?new Set(Object.values(w.exercises||{}).flat().map(e=>e.id)):new Set();
-  // In swap mode, prioritise exercises sharing a muscle word with the one being replaced.
   const swapWords=(pickerState.swapMuscles||'').toLowerCase().split(/[,\s]+/).filter(x=>x.length>2);
-  const muscleScore=ex=>{ if(!swapWords.length) return 0; const m=(ex.muscles||'').toLowerCase(); return swapWords.some(w=>m.includes(w))?1:0; };
+  // Graded muscle overlap: count of matching words (not binary)
+  const muscleScore=ex=>{ if(!swapWords.length) return 0; const m=(ex.muscles||'').toLowerCase(); return swapWords.filter(w=>m.includes(w)).length; };
   const score=ex=>{
-    const doable=checkExerciseSetting(ex,setting).ok?1:0;
     const phaseM=ex.phases.includes(phase)?1:0;
-    return doable*100 + muscleScore(ex)*10 + phaseM;
+    return muscleScore(ex)*10 + phaseM;
   };
   exercises.sort((a,b)=>score(b)-score(a));
   const list=document.getElementById('picker-list');
   if(!exercises.length){ list.innerHTML='<div class="no-results">No exercises found.</div>'; return; }
-  const topScore=exercises.length?score(exercises[0]):0;
-  const isSwap=pickerState.swapIdx!==null&&pickerState.swapIdx!==undefined;
   const renderItem=(ex)=>{
     const match=ex.phases.includes(phase);
-    const chk=checkExerciseSetting(ex,setting);
     const alreadyAdded=usedIds.has(ex.id);
-    const phaseBadge=match?`<span class="modal-phase-badge">&#10003; Phase ${phase}</span>`:`<span style="color:var(--gray-500);font-size:11px">Ph ${ex.phases.join(',')}</span>`;
-    const equipBadge=chk.ok?'':`<span style="background:#fff0e0;color:#b35900;border:1px solid #f0c088;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700">⚠ ${esc(chk.reason)}</span>`;
-    const bestBadge=(isSwap&&score(ex)===topScore&&topScore>100)?`<span class="modal-best-badge">★ Best Match</span>`:'';
+    const phaseBadge=match?`<span class="modal-phase-badge">&#10003; Phase ${phase}</span>`:`<span style="color:var(--gray-500);font-size:11px">Ph ${(ex.phases||[]).join(',')}</span>`;
     const addedBadge=alreadyAdded?`<span class="ex-added-badge">✓ Added</span>`:'';
-    const opacity=chk.ok?(alreadyAdded?'opacity:0.45':''):'opacity:0.55';
+    const opacity=alreadyAdded?'opacity:0.45':'';
     return `<div class="modal-ex-item${alreadyAdded?' ex-already-added':''}" style="${opacity}" onclick="addExercise('${ex.id}')">
-      <div style="flex:1;min-width:0"><div class="modal-ex-name">${esc(ex.name)}</div><div class="modal-ex-meta">${esc(ex.sub)}${ex.muscles?' · '+esc(ex.muscles):''}</div></div>
-      <div class="modal-ex-right">${addedBadge}${bestBadge}${equipBadge}${phaseBadge}<button class="ex-pick-info" onclick="event.stopPropagation();libEnsureInit();libOpenModal('${ex.id}')" title="View exercise details">ⓘ</button></div>
+      <div style="flex:1;min-width:0"><div class="modal-ex-name">${esc(ex.name)}</div><div class="modal-ex-meta">${esc(ex.sub||'')}${ex.muscles?' · '+esc(ex.muscles):''}</div></div>
+      <div class="modal-ex-right">${addedBadge}${phaseBadge}<button class="ex-pick-info" onclick="event.stopPropagation();libEnsureInit();libOpenModal('${ex.id}')" title="View exercise details">ⓘ</button></div>
     </div>`;
   };
-  // Curated alternatives group — shown at top in swap mode when the exercise has a mapping
+  // Curated alternatives group
   const curatedIds=(isSwap&&pickerState.swapExId)?EXERCISE_ALTERNATIVES[pickerState.swapExId]||[]:[];
   const exIdSet=new Set(exercises.map(e=>e.id));
-  // Preserve curation order; only show ones visible in this section (respects phase/equip filters too)
   const curatedExs=curatedIds.map(id=>EXERCISE_LIBRARY.find(e=>e.id===id)).filter(e=>e&&exIdSet.has(e.id));
   let html='';
   if(curatedExs.length>0){
@@ -3362,6 +3428,74 @@ const EXERCISE_ALTERNATIVES = {
   'act-bal-squat-touchdown': ['res-squat-bw-squat','res-lunge'],
   'bal-sl-rdl':              ['act-core1-floor-bridge','core-bridge','res-rdl','res-hinge-rdl'],
   'act-bal-rdl':             ['res-rdl','res-hinge-rdl','act-core1-floor-bridge'],
+};
+
+const INJURY_LABELS = {
+  lower_back:'Lower Back', knee:'Knee', shoulder:'Shoulder',
+  hip:'Hip', wrist:'Wrist / Elbow', ankle:'Ankle', neck:'Neck',
+};
+const INJURY_CONTRAINDICATIONS = {
+  lower_back: [
+    'res-deadlift','res-leg-bb-deadlift',
+    'res-barbell-sq','res-leg-bb-squat',
+    'res-barbell-row','res-back-bb-row1','res-back-bb-row2','res-back-bb-row3',
+    'res-hinge-bw-goodmorning',
+    'core-crunch','core-ball-crunch','act-core25-ball-crunch',
+    'core-rev-crunch','act-core25-rev-crunch','core-knee-up','act-core25-knee-up',
+    'core-rus-twist','core-mb-rot','core-mb-chop','core-mb-oh',
+  ],
+  knee: [
+    'res-lunge','res-leg-mp-lunges','res-leg-lunge-bal',
+    'res-step-up','res-leg-stepup-bal','res-leg-mp-stepup-bal','res-squat-stepup-bal',
+    'res-leg-ext','res-barbell-sq','res-leg-bb-squat',
+    'res-goblet-sq','res-leg-kb-goblet','res-leg-db-squat','res-squat-ball-squat','res-leg-press','res-leg-leg-press',
+    'res-sl-squat-r','bal-sl-squat','bal-sl-squat-td','act-bal-squat','act-bal-squat-touchdown',
+    'sd-plyo1-squat-stab','sd-plyo1-squat-jd-stab','sd-plyo1-mp-jump-stab',
+    'sd-plyo24-squat-jump','plyo-squat-hold','plyo-squat-rep','sd-plyo24-repeat-box','plyo-box-hold',
+    'sd-plyo5-tuck-jump','plyo-tuck-hold','plyo-tuck-rep','plyo-depth-jump',
+    'plyo-lat-hold','plyo-pwr-step','sd-plyo24-power-stepup','plyo-sl-pwr',
+  ],
+  shoulder: [
+    'res-oh-press','res-sh-bb-press','res-db-shoulder','res-sh-seated-db','res-sh-stand-db',
+    'res-press-stand-db-sh','res-sl-db-sh','res-press-sl-db-sh','res-arnold','res-press-arnold',
+    'res-bku','res-sh-stand-kb','res-press-tubing-sh','res-sh-ball-combo2',
+    'res-lat-raise','res-sh-lat-raise','res-front-raise','res-sh-stand-scaption','res-sh-sl-scaption',
+    'res-pullup','res-back-pullup','res-back-pullups',
+    'res-lat-pull','res-back-lat-pulldown','res-back-seated-lat-pd','res-stand-lat','res-back-standing-lat-pd',
+    'res-pushup','res-chest-pushup','res-push-pushup','res-push-incline-pu','res-push-susp-pu',
+    'res-exp-pushup','res-push-pu-rotation','res-chest-ball-pushup','res-dip',
+  ],
+  hip: [
+    'res-lunge','res-leg-mp-lunges','res-leg-lunge-bal',
+    'res-step-up','res-leg-stepup-bal','res-leg-mp-stepup-bal',
+    'res-deadlift','res-leg-bb-deadlift',
+    'res-rdl','res-hinge-rdl','res-sl-rdl-r','res-hinge-sl-rdl','res-leg-rdl','res-leg-sl-rdl','res-hinge-kb-sl-rdl',
+    'res-kb-swing','core-knee-up','act-core25-knee-up','act-core25-rev-crunch','core-rev-crunch',
+  ],
+  wrist: [
+    'res-pushup','res-chest-pushup','res-push-pushup','res-push-incline-pu',
+    'res-exp-pushup','res-push-pu-rotation','res-push-susp-pu','res-chest-ball-pushup',
+    'act-core1-plank','core-plank','act-core25-side-plank','core-side-plank',
+    'res-barbell-sq','res-leg-bb-squat','res-oh-press','res-sh-bb-press',
+    'res-barbell-row','res-back-bb-row1','res-back-bb-row2','res-back-bb-row3','res-cgbp',
+  ],
+  ankle: [
+    'res-calf-raise','res-leg-calf-raise2','res-sl-calf',
+    'res-lunge','res-leg-mp-lunges','res-step-up','res-leg-stepup-bal',
+    'sd-plyo1-squat-stab','sd-plyo1-squat-jd-stab','sd-plyo1-mp-jump-stab',
+    'sd-plyo24-squat-jump','plyo-squat-hold','plyo-squat-rep','sd-plyo24-repeat-box','plyo-box-hold',
+    'sd-plyo5-tuck-jump','plyo-tuck-hold','plyo-tuck-rep','plyo-depth-jump',
+    'plyo-lat-hold','plyo-pwr-step','sd-plyo24-power-stepup','plyo-sl-pwr',
+    'sd-saq-cone-drills1','sd-saq-cone-drills2','sd-saq-speed-ladder1','sd-saq-speed-ladder2',
+    'saq-t-drill','saq-5-10-5','saq-ladder','saq-cone-weave',
+    'bal-sl-squat','bal-sl-squat-td','bal-sl-rdl','act-bal-rdl',
+    'act-bal-squat','act-bal-squat-touchdown',
+  ],
+  neck: [
+    'res-barbell-sq','res-leg-bb-squat',
+    'res-oh-press','res-sh-bb-press',
+    'res-deadlift','res-leg-bb-deadlift',
+  ],
 };
 
 function libEnsureInit() { if (!libInited) { libInit(); libInited = true; } }
